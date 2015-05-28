@@ -1956,7 +1956,7 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
                 $('#oncoprint_zoom_slider')[0].value = zoomvalue;
                 // sync
                 oncoprint.zoom(zoomvalue);
- 
+                
                 oncoprint.showUnalteredCases(!$('#toggle_unaltered_cases').is(":checked"));
                 if($('#oncoprint-diagram-removeWhitespace-icon img')[0].attributes.src.value === 'images/removeWhitespace.svg')
                 {
