@@ -178,10 +178,19 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
         success: function(data) {
             //for add clinical attributes in url to data start
             var urlValueNow = window.location.href;//get current page url
-            var beginOfDeleteElementNow = urlValueNow.indexOf('&clinicallist=');
+            var beginOfDeleteElementNow = urlValueNow.indexOf('clinicallist=');
+            
+            if(urlValueNow.indexOf("&showPatientIdflat=false")>-1)
+            {
+                showPatientIdflat =false;
+            }
+            
             if(beginOfDeleteElementNow > 0)
             {
-                var clinicallistStringNow = urlValueNow.substring(beginOfDeleteElementNow + ('&clinicallist=').length,urlValueNow.length);
+//                var clinicallistStringNow = urlValueNow.substring(beginOfDeleteElementNow + ('&clinicallist=').length,urlValueNow.length);
+                var clinicallistStringNow = urlValueNow.substring(beginOfDeleteElementNow);
+                clinicallistStringNow = (clinicallistStringNow.split("&"))[0];
+                clinicallistStringNow = (clinicallistStringNow.split("="))[1];
                 var clinicallistArrayNow = clinicallistStringNow.split('+');
 
                 var clinicalAttributeArray = [];
@@ -332,6 +341,9 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
                             }
                             else
                             {
+                                $('#oncoprint_diagram_topatientid_icon img')[0].attributes.src.value = 'images/cool.svg';
+                                $('#switchPatientSample').text("patients"); 
+                                $('#switchPatientSample')[0].attributes.valuetype.value = "samples";
                                 $('#altered_value').text("Altered in "+ PortalGlobals.getNumOfAlteredCases() + " ("+ Math.ceil(PortalGlobals.getPercentageOfAlteredCases()) +"%) of "+ PortalGlobals.getNumOfTotalCases() + " samples"); 
                             }
                             
@@ -426,39 +438,12 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
                 }
                 else
                 {
+                    $('#oncoprint_diagram_topatientid_icon img')[0].attributes.src.value = 'images/cool.svg';
+                    $('#switchPatientSample').text("patients"); 
+                    $('#switchPatientSample')[0].attributes.valuetype.value = "samples";
                     $('#altered_value').text("Altered in "+ PortalGlobals.getNumOfAlteredCases() + " ("+ Math.ceil(PortalGlobals.getPercentageOfAlteredCases()) +"%) of "+ PortalGlobals.getNumOfTotalCases() + " samples"); 
                 }                
             }
-            
-            //for add clinical attributes in url to data end
-    
-//            oncoprint = Oncoprint(document.getElementById('oncoprint_body'), {
-//                geneData: data.toJSON(),
-//                genes: genes,
-//                legend: document.getElementById('oncoprint_legend')
-//            },extraTracks);
-
-//            outer_loader_img.hide();
-//            $('#oncoprint #everything').show();
-//
-//            if($('#oncoprint_sortbyfirst_dropdonw span')[0].innerHTML === 'Sort by')
-//            {
-//                oncoprint.sortBy("genes", cases.split(" "),mutationColorControl,mutationColorSort,sortStatus);
-//            }
-//            else
-//            {
-//                selectsortby();
-//            }
-//
-//            $('.attribute_name').qtip({
-//                content: {text: 'hold to drag'},
-//                position: {my:'middle right', at:'middle left', viewport: $(window)},
-//                style: { classes: 'qtip-light qtip-rounded qtip-shadow qtip-lightyellow' },
-//                show: {event: "mouseover"}
-//            });  
-//            
-//            zoom = reset_zoom();
-//            invokeDataManager(); 
         }
     });
 
@@ -509,10 +494,12 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
                 positionOfDeleteElement = urlValue.indexOf('mutation'); //for delete it in url
             }
             
-            var beginOfDeleteElement = urlValue.indexOf('&clinicallist='); //for delete it in url
+            var beginOfDeleteElement = urlValue.indexOf('clinicallist='); //for delete it in url
             
-            var clinicallistString = urlValue.substring(beginOfDeleteElement+('&clinicallist=').length,urlValue.length);
-            var clinicallistArray = clinicallistString.split('+');
+//            var clinicallistString = urlValue.substring(beginOfDeleteElement+('&clinicallist=').length,urlValue.length);
+            var clinicallistString = urlValue.substring(beginOfDeleteElement);
+            clinicallistString = (clinicallistString.split("&"))[0];
+            var clinicallistArray = (clinicallistString.split("="))[1].split('+');
             if(clinicallistArray.length > 1)
             {
                 var DeleteElementAttr_id = recordDeleteElement.attr_id;
@@ -534,7 +521,8 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
             }
             else
             {
-                var newUrl = urlValue.slice(0,beginOfDeleteElement);
+//                var newUrl = urlValue.slice(0,beginOfDeleteElement);
+                var newUrl = urlValue.replace("&"+clinicallistString,'');
                 window.history.pushState({"html":window.location.html,"pageTitle":window.location.pageTitle},"", newUrl);
             }
             
@@ -943,7 +931,10 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
                         }
                         else
                         {
-                            var newUrl = urlValue + "+mutation";
+                            var stringAfterClinical = urlValue.substring(positionOfSubmit);
+                            var stringArrayAfterClinical = stringAfterClinical.split("&");
+                            var clinicalString = stringArrayAfterClinical[0] + "+mutation";
+                            var newUrl = urlValue.replace(stringArrayAfterClinical[0],clinicalString);
                             window.history.pushState({"html":window.location.html,"pageTitle":window.location.pageTitle},"", newUrl);
                         }
                         
@@ -1053,7 +1044,11 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
                         }
                         else
                         {
-                            var newUrl = urlValue + "+FRACTION_GENOME_ALTERED";
+                            var stringAfterClinical = urlValue.substring(positionOfSubmit);
+                            var stringArrayAfterClinical = stringAfterClinical.split("&");
+                            var clinicalString = stringArrayAfterClinical[0] + "+FRACTION_GENOME_ALTERED";
+                            var newUrl = urlValue.replace(stringArrayAfterClinical[0],clinicalString);
+//                            var newUrl = urlValue + "+FRACTION_GENOME_ALTERED";
                             window.history.pushState({"html":window.location.html,"pageTitle":window.location.pageTitle},"", newUrl);
                         }
                         
@@ -1163,7 +1158,11 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
                         }
                         else
                         {
-                            var newUrl = urlValue + "+" + extraTracks[extraTracks.length-1];
+                            var stringAfterClinical = urlValue.substring(positionOfSubmit);
+                            var stringArrayAfterClinical = stringAfterClinical.split("&");
+                            var clinicalString = stringArrayAfterClinical[0] + "+" + extraTracks[extraTracks.length-1];
+                            var newUrl = urlValue.replace(stringArrayAfterClinical[0],clinicalString);
+//                            var newUrl = urlValue + "+" + extraTracks[extraTracks.length-1];
                             window.history.pushState({"html":window.location.html,"pageTitle":window.location.pageTitle},"", newUrl);
                         }
                         
@@ -1743,8 +1742,12 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
                     $('#switchPatientSample').text("samples")
                     $('#switchPatientSample')[0].attributes.valuetype.value = "patients"
                 }
+                
               if($('#oncoprint_diagram_topatientid_icon img')[0].attributes.src.value === 'images/cool.svg')
-              {      
+              { 
+                var urlValueNow = window.location.href;
+                var newUrl = urlValueNow.replace("&showPatientIdflat=false","");
+                window.history.pushState({"html":window.location.html,"pageTitle":window.location.pageTitle},"", newUrl);
                 if($('#oncoprint_diagram_showmutationcolor_icon img')[0].attributes.src.value === 'images/mutationcolorsort.svg')
                 {
                     mutationColorControl = 'singleColor';
@@ -1799,6 +1802,10 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
               }
                 else if($('#oncoprint_diagram_topatientid_icon img')[0].attributes.src.value === 'images/cool2.svg')
               {
+                var urlValueNow = window.location.href;
+                var newUrl = urlValueNow + "&showPatientIdflat=false";
+                window.history.pushState({"html":window.location.html,"pageTitle":window.location.pageTitle},"", newUrl);
+                
                 if($('#oncoprint_diagram_showmutationcolor_icon img')[0].attributes.src.value === 'images/mutationcolorsort.svg')
                 {
                     mutationColorControl = 'singleColor';
@@ -1863,7 +1870,10 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
                 }
               
               if($('#oncoprint_diagram_topatientid_icon img')[0].attributes.src.value === 'images/cool.svg')
-              {      
+              {  
+                var urlValueNow = window.location.href;
+                var newUrl = urlValueNow.replace("&showPatientIdflat=false","");
+                window.history.pushState({"html":window.location.html,"pageTitle":window.location.pageTitle},"", newUrl);
                 if($('#oncoprint_diagram_showmutationcolor_icon img')[0].attributes.src.value === 'images/mutationcolorsort.svg')
                 {
                     mutationColorControl = 'singleColor';
@@ -1918,6 +1928,9 @@ requirejs(  [         'Oncoprint',    'OncoprintUtils'],
               }
                 else if($('#oncoprint_diagram_topatientid_icon img')[0].attributes.src.value === 'images/cool2.svg')
               {
+                var urlValueNow = window.location.href;
+                var newUrl = urlValueNow + "&showPatientIdflat=false";
+                window.history.pushState({"html":window.location.html,"pageTitle":window.location.pageTitle},"", newUrl);
                 if($('#oncoprint_diagram_showmutationcolor_icon img')[0].attributes.src.value === 'images/mutationcolorsort.svg')
                 {
                     mutationColorControl = 'singleColor';
