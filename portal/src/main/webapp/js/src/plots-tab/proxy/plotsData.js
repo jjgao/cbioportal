@@ -54,6 +54,7 @@ var plotsData = (function() {
                 case_set_id: window.PortalGlobals.getCaseSetId(),
                 case_ids_key: window.PortalGlobals.getCaseIdsKey()
             };
+
             $.post("getProfileData.json", paramsGetProfileData, inner_profile_callback_func, "json");
             
         } else if ($("input:radio[name='" + ids.sidebar[axis].data_type + "']:checked").val() === vals.data_type.clin) {
@@ -72,6 +73,7 @@ var plotsData = (function() {
                 cmd : "getClinicalData",
                 cancer_study_id: window.PortalGlobals.getCancerStudyId(),
                 case_set_id : window.PortalGlobals.getCaseSetId(),
+                case_ids_key: window.PortalGlobals.getCaseIdsKey(),
                 format : "json"
             };
             $.post("webservice.do", paramsGetClinicalAttributes, inner_callback_func, "json");
