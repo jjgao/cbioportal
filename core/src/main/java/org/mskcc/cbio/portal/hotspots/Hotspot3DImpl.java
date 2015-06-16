@@ -64,6 +64,17 @@ public class Hotspot3DImpl extends HotspotImpl implements Hotspot3D {
     }
     
     @Override
+    public String getLabel() {
+        StringBuilder sb = new StringBuilder(super.getLabel());
+        sb.append("#");
+        for (Hotspot hs : hotspots3D) {
+            MutatedProtein3D protein = MutatedProtein3D.class.cast(hs.getProtein());
+            sb.append(protein.getPdbId()).append('_').append(protein.getPdbChain()).append(";");
+        }
+        return sb.toString();
+    }
+    
+    @Override
     public double getPValue() {
         if (hotspots3D.isEmpty()) {
             return Double.NaN;
