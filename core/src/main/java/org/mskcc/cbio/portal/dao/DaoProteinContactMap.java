@@ -46,7 +46,7 @@ public class DaoProteinContactMap {
     
     public static int addProteinContactMap(String pdbId,
             String chain, int residue1, String atom1, int residue2, String atom2,
-            double distance, double distanceError) {
+            double distanceClosestAtoms, double distanceCAlpha, double distanceError) {
         if (!MySQLbulkLoader.isBulkLoad()) {
             throw new IllegalStateException("only bulk load mode is supported ");
         } 
@@ -58,7 +58,8 @@ public class DaoProteinContactMap {
                 atom1,
                 Integer.toString(residue2),
                 atom2,
-                Double.toString(distance),
+                Double.toString(distanceClosestAtoms),
+                Double.toString(distanceCAlpha),
                 Double.toString(distanceError));
 
         // return 1 because normal insert will return 1 if no error occurs
@@ -74,7 +75,7 @@ public class DaoProteinContactMap {
      * @return Map<residue, set <contacting residues>>
      */
     public static Map<Integer, Set<Integer>> getProteinContactMap(String pdbId, String chain,
-            Collection<Integer> residues, double distanceThreshold, double distanceErrorThreshold) throws DaoException {
+            Collection<Integer> residues, double distanceClosestAtomsThreshold, double distanceCAlphaThreshold, double distanceErrorThreshold) throws DaoException {
         Connection con = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -87,8 +88,11 @@ public class DaoProteinContactMap {
                     + "AND `CHAIN`='" + chain + "' "
                     + "AND `RESIDUE1` IN (" + strResidues + ") "
                     + "AND `RESIDUE2` IN (" + strResidues + ") ";
-            if (distanceThreshold>0) {
-                sql += "AND `DISTANCE`<"+distanceThreshold+" ";
+            if (distanceClosestAtomsThreshold>0) {
+                sql += "AND `DISTANCE_CLOSEST_ATOMS`<"+distanceClosestAtomsThreshold+" ";
+            }
+            if (distanceCAlphaThreshold>0) {
+                sql += "AND `DISTANCE_C_ALPHA`<"+distanceCAlphaThreshold+" ";
             }
             if (distanceErrorThreshold>0) {
                 sql += "AND `DISTANCE_ERROR`<"+distanceErrorThreshold+" ";

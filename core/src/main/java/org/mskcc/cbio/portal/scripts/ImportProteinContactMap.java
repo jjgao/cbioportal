@@ -79,10 +79,11 @@ public class ImportProteinContactMap {
                 
                 String atom2 = parts[5];
                 
-                double distance = Double.parseDouble(parts[6]);
-                double error = Double.parseDouble(parts[7]);
+                double distanceClosestAtoms = Double.parseDouble(parts[6]);
+                double distanceCAlpha = Double.parseDouble(parts[7]);
+                double error = Double.parseDouble(parts[8]);
                 
-                DaoProteinContactMap.addProteinContactMap(pdbId, chainId, res1, atom1, res2, atom2, distance, error);
+                DaoProteinContactMap.addProteinContactMap(pdbId, chainId, res1, atom1, res2, atom2, distanceClosestAtoms, distanceCAlpha, error);
             }
         }
         if (MySQLbulkLoader.isBulkLoad()) {

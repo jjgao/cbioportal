@@ -42,7 +42,8 @@ public class HotspotDetectiveParametersImpl implements HotspotDetectiveParameter
     private boolean seperateByProteinChangesForSingleResidueHotspot;
     private int linearSpotWindowSize;
     private int ptmHotspotWindowSize;
-    private double distanceThresholdFor3DHotspots;
+    private double distanceThresholdClosestAtomsFor3DHotspots;
+    private double distanceThresholdCAlphaFor3DHotspots;
     private double distanceErrorThresholdFor3DHotspots;
     private double identpThresholdFor3DHotspots;
     private boolean includingMismatchesFor3DHotspots;
@@ -120,13 +121,23 @@ public class HotspotDetectiveParametersImpl implements HotspotDetectiveParameter
     }
 
     @Override
-    public double getDistanceThresholdFor3DHotspots() {
-        return distanceThresholdFor3DHotspots;
+    public double getDistanceClosestAtomsThresholdFor3DHotspots() {
+        return distanceThresholdClosestAtomsFor3DHotspots;
     }
 
     @Override
-    public void setDistanceThresholdFor3DHotspots(double distanceThresholdFor3DHotspots) {
-        this.distanceThresholdFor3DHotspots = distanceThresholdFor3DHotspots;
+    public void setDistanceClosestAtomsThresholdFor3DHotspots(double anstrom) {
+        this.distanceThresholdClosestAtomsFor3DHotspots = anstrom;
+    }
+
+    @Override
+    public double getDistanceCAlphaThresholdFor3DHotspots() {
+        return distanceThresholdCAlphaFor3DHotspots;
+    }
+
+    @Override
+    public void setDistanceCAlphaThresholdFor3DHotspots(double anstrom) {
+        this.distanceThresholdCAlphaFor3DHotspots = distanceThresholdCAlphaFor3DHotspots;
     }
 
     @Override

@@ -70,7 +70,7 @@ public class CalculatePDBPTMData {
         String dirSiftsHumanChains = args[2];
         String dirOutputFile = args[3];
         String dirCache = args[4];
-        double lengthTolerance = 4.0;
+        double lengthTolerance = 10.0;
         if (args.length==6) {
             lengthTolerance = Double.parseDouble(args[5]);
         }
@@ -204,7 +204,7 @@ public class CalculatePDBPTMData {
         
         FileWriter writer = new FileWriter(dirOutputFile);
         BufferedWriter buf = new BufferedWriter(writer);
-        buf.write("#PDB_ID\tChain\tResidue1\tAtom1\tResidue2\tAtom2\tDistance\tError\n");
+        buf.write("#PDB_ID\tChain\tResidue1\tAtom1\tResidue2\tAtom2\tDistanceClosestAtams\tDistanceCAlpha\tError\n");
         
         for (Map.Entry<String,Set<String>> entry : pdbEntries.entrySet()) {
             String pdbId = entry.getKey();
@@ -242,6 +242,7 @@ public class CalculatePDBPTMData {
                             Group group2 = residues.get(j);
                             Atom[] linkage = StructureUtil.findNearestAtomLinkage(group1, group2,
                                     null, null, false, lengthTolerance); // including N-C link
+                                
                             if (linkage != null) {
                                 buf.write(pdbId);
                                 buf.write("\t");
@@ -251,11 +252,17 @@ public class CalculatePDBPTMData {
                                 writeAtom(StructureUtil.getStructureAtom(linkage[0], true), buf, "\t");
                                 writeAtom(StructureUtil.getStructureAtom(linkage[1], true), buf, "\t");
                                 
-                                double distance = StructureUtil.getAtomDistance(linkage[0], linkage[1]);
-                                buf.write(Double.toString(distance));
+                                double distanceClosestAtams = StructureUtil.getAtomDistance(linkage[0], linkage[1]);
+                                buf.write(Double.toString(distanceClosestAtams));
                                 buf.write("\t");
                                 
-                                double error = getError(linkage[0], linkage[1], distance);
+                                Atom ca1 = group1.getAtom("CA");
+                                Atom ca2 = group2.getAtom("CA");
+                                double distanceCAlpha  = ca1==null||ca2==null ? Double.MAX_VALUE : StructureUtil.getAtomDistance(ca1, ca2);
+                                buf.write(Double.toString(distanceCAlpha));
+                                buf.write("\t");
+                                
+                                double error = getError(linkage[0], linkage[1], distanceClosestAtams);
                                 buf.write(Double.toString(error));
                                 buf.write("\n");
                             }

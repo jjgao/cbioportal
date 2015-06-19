@@ -64,7 +64,8 @@ public class HotspotsServlet extends HttpServlet {
     public static final String THRESHOLD_SAMPLES = "threshold_samples";
     public static final String THRESHOLD_MUTATIONS_HYPERMUTATOR = "threshold_hypermutator";
     public static final String PTM_HOTSPOT_WINDOW = "window_ptm";
-    public static final String THRESHOLD_DISTANCE_CONTACT_MAP = "threshold_distance_3d";
+    public static final String THRESHOLD_DISTANCE_CLOSEST_DISTANCE_CONTACT_MAP = "threshold_distance_closest_atom_3d";
+    public static final String THRESHOLD_DISTANCE_C_ALPHA_CONTACT_MAP = "threshold_distance_c_alpha_3d";
     public static final String THRESHOLD_DISTANCE_ERROR_CONTACT_MAP = "threshold_distance_error_3d";
     public static final String THRESHOLD_UNIPROT_PDB_ALIGNMENT_IDENTP = "threshold_identp_3d";
     public static final String LINEAR_HOTSPOT_WINDOW = "window_linear";
@@ -137,9 +138,13 @@ public class HotspotsServlet extends HttpServlet {
                 hotspotDetectiveParameters.setLinearSpotWindowSize(window);
                 hotspotDetective = new LinearHotspotDetective(hotspotDetectiveParameters);
             } else if (hotspotType.equalsIgnoreCase("3d")) {
-                String strThresholdDis = request.getParameter(THRESHOLD_DISTANCE_CONTACT_MAP);
-                double thresholdDis = strThresholdDis==null?0:Double.parseDouble(strThresholdDis);
-                hotspotDetectiveParameters.setDistanceThresholdFor3DHotspots(thresholdDis);
+                String strThresholdDisClosestAtoms = request.getParameter(THRESHOLD_DISTANCE_CLOSEST_DISTANCE_CONTACT_MAP);
+                double thresholdDisClosestAtoms = strThresholdDisClosestAtoms==null?0:Double.parseDouble(strThresholdDisClosestAtoms);
+                hotspotDetectiveParameters.setDistanceClosestAtomsThresholdFor3DHotspots(thresholdDisClosestAtoms);
+                
+                String strThresholdDisCAlpha = request.getParameter(THRESHOLD_DISTANCE_C_ALPHA_CONTACT_MAP);
+                double thresholdDisCAlpha = strThresholdDisCAlpha==null?0:Double.parseDouble(strThresholdDisCAlpha);
+                hotspotDetectiveParameters.setDistanceCAlphaThresholdFor3DHotspots(thresholdDisCAlpha);
                 
                 String strThresholdDisError = request.getParameter(THRESHOLD_DISTANCE_ERROR_CONTACT_MAP);
                 double thresholdDisError = strThresholdDisError==null?0:Double.parseDouble(strThresholdDisError);

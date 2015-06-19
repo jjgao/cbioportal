@@ -177,7 +177,8 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
     
     private Map<Integer, Set<Integer>> getPdbContactMap(MutatedProtein3D protein3D, Set<Integer> residues) throws DaoException {
         return DaoProteinContactMap.getProteinContactMap(protein3D.getPdbId(), protein3D.getPdbChain(),
-                        residues, parameters.getDistanceThresholdFor3DHotspots(),
+                        residues, parameters.getDistanceClosestAtomsThresholdFor3DHotspots(),
+                        parameters.getDistanceCAlphaThresholdFor3DHotspots(),
                         parameters.getDistanceErrorThresholdFor3DHotspots());
     }
     

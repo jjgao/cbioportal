@@ -153,13 +153,25 @@ public interface HotspotDetectiveParameters {
      * 
      * @return 
      */
-    public double getDistanceThresholdFor3DHotspots();
+    public double getDistanceClosestAtomsThresholdFor3DHotspots();
     
     /**
      * 
      * @param anstrom 
      */
-    public void setDistanceThresholdFor3DHotspots(double anstrom);
+    public void setDistanceClosestAtomsThresholdFor3DHotspots(double anstrom);
+    
+    /**
+     * 
+     * @return 
+     */
+    public double getDistanceCAlphaThresholdFor3DHotspots();
+    
+    /**
+     * 
+     * @param anstrom 
+     */
+    public void setDistanceCAlphaThresholdFor3DHotspots(double anstrom);
     
     /**
      * 
