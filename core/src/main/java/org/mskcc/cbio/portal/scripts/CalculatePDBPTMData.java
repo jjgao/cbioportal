@@ -256,9 +256,16 @@ public class CalculatePDBPTMData {
                                 buf.write(Double.toString(distanceClosestAtams));
                                 buf.write("\t");
                                 
-                                Atom ca1 = group1.getAtom("CA");
-                                Atom ca2 = group2.getAtom("CA");
-                                double distanceCAlpha  = ca1==null||ca2==null ? Double.MAX_VALUE : StructureUtil.getAtomDistance(ca1, ca2);
+                                double distanceCAlpha  = Double.MAX_VALUE;
+                                try {
+                                    Atom ca1 = group1.getAtom("CA");
+                                    Atom ca2 = group2.getAtom("CA");
+                                    if (ca1!=null && ca2!=null) {
+                                        distanceCAlpha = StructureUtil.getAtomDistance(ca1, ca2);
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                                 buf.write(Double.toString(distanceCAlpha));
                                 buf.write("\t");
                                 
