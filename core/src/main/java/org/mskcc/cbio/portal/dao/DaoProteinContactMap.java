@@ -81,13 +81,16 @@ public class DaoProteinContactMap {
         ResultSet rs = null;
         try {
             con = JdbcUtil.getDbConnection(DaoProteinContactMap.class);
-            String strResidues = StringUtils.join(residues, ",");
+            
             String sql = "SELECT  `RESIDUE1`, `RESIDUE2` "
                     + "FROM  `protein_contact_map` "
                     + "WHERE `PDB_ID`='" + pdbId + "' "
-                    + "AND `CHAIN`='" + chain + "' "
-                    + "AND `RESIDUE1` IN (" + strResidues + ") "
+                    + "AND `CHAIN`='" + chain + "' ";
+            if (residues!=null) {
+                String strResidues = StringUtils.join(residues, ",");
+                sql += "AND `RESIDUE1` IN (" + strResidues + ") "
                     + "AND `RESIDUE2` IN (" + strResidues + ") ";
+            }
             if (distanceClosestAtomsThreshold>0) {
                 sql += "AND `DISTANCE_CLOSEST_ATOMS`<"+distanceClosestAtomsThreshold+" ";
             }
@@ -100,7 +103,7 @@ public class DaoProteinContactMap {
             pstmt = con.prepareStatement(sql);
             rs = pstmt.executeQuery();
             
-            Map<Integer, Set<Integer>> map = new HashMap<Integer, Set<Integer>>(residues.size());
+            Map<Integer, Set<Integer>> map = new HashMap<Integer, Set<Integer>>();
             for (Integer res : residues) {
                 map.put(res, new HashSet<Integer>());
             }
@@ -108,8 +111,18 @@ public class DaoProteinContactMap {
             while (rs.next()) {
                 int res1 = rs.getInt(1);
                 int res2 = rs.getInt(2);
-                map.get(res1).add(res2);
-                map.get(res2).add(res1);
+                Set<Integer> set1 = map.get(res1);
+                if (set1==null) {
+                    set1 = new HashSet<Integer>();
+                    map.put(res1, set1);
+                }
+                set1.add(res2);
+                Set<Integer> set2 = map.get(res2);
+                if (set2==null) {
+                    set2 = new HashSet<Integer>();
+                    map.put(res2, set2);
+                }
+                set2.add(res1);
             }
             
             return map;

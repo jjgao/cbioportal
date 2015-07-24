@@ -63,11 +63,14 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
     protected Map<MutatedProtein,Set<Hotspot>> processSingleHotspotsOnAProtein(MutatedProtein protein,
             Map<Integer, Hotspot> mapResidueHotspot) throws HotspotException {
         Map<SortedSet<Integer>,Set<Hotspot>> mapResiduesHotspots3D = new HashMap<SortedSet<Integer>,Set<Hotspot>>();
-        Map<MutatedProtein3D,Map<Integer, SortedSet<Integer>>> contactMaps = getContactMaps(protein, mapResidueHotspot.keySet());
-        for (Map.Entry<MutatedProtein3D, Map<Integer, SortedSet<Integer>>> entryContactMaps : contactMaps.entrySet()) {
+        int len = protein.getProteinLength();
+        Map<MutatedProtein3D,boolean[][]> contactMaps = getContactMaps(protein);
+        for (Map.Entry<MutatedProtein3D, boolean[][]> entryContactMaps : contactMaps.entrySet()) {
             MutatedProtein3D protein3D = entryContactMaps.getKey();
-            Map<Integer, SortedSet<Integer>> contactMap = entryContactMaps.getValue();
-            for (SortedSet<Integer> residues : cleanResiduesSet(contactMap.values())) { // remove redundancy
+            boolean[][] contactMap = entryContactMaps.getValue();
+            
+            Set<SortedSet<Integer>> clusters = findConnectedNeighbors(contactMap, mapResidueHotspot.keySet());
+            for (SortedSet<Integer> residues : clusters) {
                 Hotspot hotspot3D = new HotspotImpl(protein3D, numberOfsequencedCases, residues);
                 for (int residue : residues) {
                     hotspot3D.mergeHotspot(mapResidueHotspot.get(residue));
@@ -101,6 +104,21 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         return Collections.singletonMap(protein, hotspots3D);
     }
     
+    private Set<SortedSet<Integer>> findConnectedNeighbors(boolean[][] graph, Set<Integer> nodes) {
+        Set<SortedSet<Integer>> ret = new HashSet<SortedSet<Integer>>(nodes.size());
+        for (Integer node : nodes) {
+            SortedSet<Integer> set = new TreeSet<Integer>();
+            set.add(node);
+            for (Integer neighbor : nodes) {
+                if (graph[node][neighbor]) {
+                    set.add(neighbor);
+                }
+            }
+            ret.add(set);
+        }
+        return ret;
+    }
+    
     @Override
     protected int getLengthOfProtein(MutatedProtein protein, Collection<Hotspot> mapResidueHotspot) {
         return protein.getProteinLength(); // skip it.. since it's already set
@@ -130,41 +148,17 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         return ret;
     }
     
-    private Map<MutatedProtein3D,Map<Integer, SortedSet<Integer>>> getContactMaps(MutatedProtein protein, Set<Integer> residues) throws HotspotException {
+    private Map<MutatedProtein3D,boolean[][]> getContactMaps(MutatedProtein protein) throws HotspotException {
         try {
-            Map<MutatedProtein3D,Map<Integer, SortedSet<Integer>>> contactMaps = new HashMap<MutatedProtein3D,Map<Integer, SortedSet<Integer>>>();
+            Map<MutatedProtein3D,boolean[][]> contactMaps = new HashMap<MutatedProtein3D,boolean[][]>();
             Map<MutatedProtein3D,List<PdbUniprotAlignment>> mapAlignments = getPdbUniprotAlignments(protein);
             for (Map.Entry<MutatedProtein3D,List<PdbUniprotAlignment>> entryMapAlignments : mapAlignments.entrySet()) {
                 MutatedProtein3D protein3D = entryMapAlignments.getKey();
                 List<PdbUniprotAlignment> alignments = entryMapAlignments.getValue();
-                
                 OneToOneMap<Integer, Integer> pdbUniprotResidueMapping = getPdbUniprotResidueMapping(alignments);
-//                protein3D.setProteinLength(pdbUniprotResidueMapping.size()); // only mapped residues
+                Map<Integer, Set<Integer>> pdbContactMap = getPdbContactMap(protein3D);
                 
-                // only retain the mapped mutated residues
-                pdbUniprotResidueMapping.retainByValue(residues);
-                
-                if (pdbUniprotResidueMapping.size()==0) {
-                    continue;
-                }
-                
-                Map<Integer, Set<Integer>> pdbContactMap = getPdbContactMap(protein3D, pdbUniprotResidueMapping.getKeySet());
-                
-                Map<Integer, SortedSet<Integer>> contactMap = new HashMap<Integer, SortedSet<Integer>>(pdbContactMap.size());
-                for (Map.Entry<Integer, Set<Integer>> entryPdbContactMap : pdbContactMap.entrySet()) {
-                    Integer uniprotPos = pdbUniprotResidueMapping.getByKey(entryPdbContactMap.getKey());
-                    Set<Integer> pdbNeighbors = entryPdbContactMap.getValue();
-                    if (pdbNeighbors.isEmpty()) {
-                        continue;
-                    }
-                    
-                    SortedSet<Integer> uniprotNeighbors = new TreeSet<Integer>();
-                    uniprotNeighbors.add(uniprotPos); // add itself
-                    for (Integer pdbNeighbor : pdbNeighbors) {
-                        uniprotNeighbors.add(pdbUniprotResidueMapping.getByKey(pdbNeighbor));
-                    }
-                    contactMap.put(uniprotPos, uniprotNeighbors);
-                }
+                boolean[][] contactMap = getUniProtContactMap(pdbContactMap, pdbUniprotResidueMapping, protein.getProteinLength());
                 
                 contactMaps.put(protein3D, contactMap);
             }
@@ -175,9 +169,37 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         }
     }
     
-    private Map<Integer, Set<Integer>> getPdbContactMap(MutatedProtein3D protein3D, Set<Integer> residues) throws DaoException {
+    private boolean[][] getUniProtContactMap(Map<Integer, Set<Integer>> pdbContactMap, OneToOneMap<Integer, Integer> pdbUniprotResidueMapping, int proteinLengh) {
+        boolean[][] ret = new boolean[proteinLengh+1][proteinLengh+1];
+        
+        for (Map.Entry<Integer, Set<Integer>> entryPdbContactMap : pdbContactMap.entrySet()) {
+            int uniprotPos = pdbUniprotResidueMapping.getByKey(entryPdbContactMap.getKey());
+            if (uniprotPos > proteinLengh) {
+                System.err.println("UniProt length longer than protein length");
+                continue;
+            }
+            Set<Integer> pdbNeighbors = entryPdbContactMap.getValue();
+            if (pdbNeighbors.isEmpty()) {
+                continue;
+            }
+
+            for (Integer pdbNeighbor : pdbNeighbors) {
+                int uniprotNeighbor = pdbUniprotResidueMapping.getByKey(pdbNeighbor);
+                if (uniprotNeighbor > proteinLengh) {
+                    System.err.println("UniProt length longer than protein length");
+                    continue;
+                }
+                ret[uniprotPos][uniprotNeighbor] = true;
+                ret[uniprotNeighbor][uniprotPos] = true;
+            }
+        }
+        
+        return ret;
+    }
+    
+    private Map<Integer, Set<Integer>> getPdbContactMap(MutatedProtein3D protein3D) throws DaoException {
         return DaoProteinContactMap.getProteinContactMap(protein3D.getPdbId(), protein3D.getPdbChain(),
-                        residues, parameters.getDistanceClosestAtomsThresholdFor3DHotspots(),
+                        null, parameters.getDistanceClosestAtomsThresholdFor3DHotspots(),
                         parameters.getDistanceCAlphaThresholdFor3DHotspots(),
                         parameters.getDistanceErrorThresholdFor3DHotspots());
     }
