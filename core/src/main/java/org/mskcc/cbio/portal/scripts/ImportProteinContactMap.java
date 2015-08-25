@@ -45,7 +45,7 @@ import org.mskcc.cbio.portal.util.ProgressMonitor;
  */
 public class ImportProteinContactMap {
     
-    public static void importData(File file, ProgressMonitor pMonitor) throws IOException, DaoException {
+    public static void importData(File file, double closestAtomCutoff, double calphaCutoff, ProgressMonitor pMonitor) throws IOException, DaoException {
         Pattern patternRes = Pattern.compile("[A-Z]{3}:(-?[0-9]+)");
         MySQLbulkLoader.bulkLoadOn();
         FileReader reader = new FileReader(file);
@@ -58,6 +58,17 @@ public class ImportProteinContactMap {
             }
             if (!line.startsWith("#")) {
                 String parts[] = line.split("\t");
+                
+                double distanceClosestAtoms = Double.parseDouble(parts[6]);
+                if (distanceClosestAtoms>closestAtomCutoff) {
+                    continue;
+                }
+                
+                double distanceCAlpha = Double.parseDouble(parts[7]);
+                if (distanceCAlpha>calphaCutoff) {
+                    continue;
+                }
+                
                 String pdbId = parts[0];
                 String chainId = parts[1];
                 
@@ -79,8 +90,6 @@ public class ImportProteinContactMap {
                 
                 String atom2 = parts[5];
                 
-                double distanceClosestAtoms = Double.parseDouble(parts[6]);
-                double distanceCAlpha = Double.parseDouble(parts[7]);
                 double error = Double.parseDouble(parts[8]);
                 
                 DaoProteinContactMap.addProteinContactMap(pdbId, chainId, res1, atom1, res2, atom2, distanceClosestAtoms, distanceCAlpha, error);
@@ -93,7 +102,7 @@ public class ImportProteinContactMap {
     
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
-            System.out.println("command line usage:  importPdbContactMap.pl <pdb-contact-map.txt>");
+            System.out.println("command line usage:  importPdbContactMap.pl <pdb-contact-map.txt> <closest-atom-distance-cutoff> <c-alpha-distance-cutoff>");
             System.exit(1);
         }
         DaoProteinContactMap.deleteAllRecords();
@@ -101,11 +110,13 @@ public class ImportProteinContactMap {
         pMonitor.setConsoleMode(true);
 
         File file = new File(args[0]);
+        double closestAtomCutoff = Double.parseDouble(args[1]);
+        double calphaCutoff = Double.parseDouble(args[2]);
         System.out.println("Reading data from:  " + file.getAbsolutePath());
         int numLines = FileUtil.getNumLines(file);
         System.out.println(" --> total number of lines:  " + numLines);
         pMonitor.setMaxValue(numLines);
-        importData(file, pMonitor);
+        importData(file, closestAtomCutoff, calphaCutoff, pMonitor);
         ConsoleUtil.showWarnings(pMonitor);
         System.err.println("Done.");
     }
