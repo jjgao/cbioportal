@@ -121,7 +121,8 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
     
     @Override
     protected int getLengthOfProtein(MutatedProtein protein, Collection<Hotspot> mapResidueHotspot) {
-        return protein.getProteinLength(); // skip it.. since it's already set
+        return super.getLengthOfProtein(protein, mapResidueHotspot);
+        //return protein.getProteinLength(); // skip it.. since it's already set
     }
     
     private List<SortedSet<Integer>> cleanResiduesSet(Collection<SortedSet<Integer>> residuesSet) {
@@ -173,7 +174,12 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         boolean[][] ret = new boolean[proteinLengh+1][proteinLengh+1];
         
         for (Map.Entry<Integer, Set<Integer>> entryPdbContactMap : pdbContactMap.entrySet()) {
-            int uniprotPos = pdbUniprotResidueMapping.getByKey(entryPdbContactMap.getKey());
+            int pdbPos = entryPdbContactMap.getKey();
+            if (!pdbUniprotResidueMapping.hasKey(pdbPos)) {
+                continue;
+            }
+            
+            int uniprotPos = pdbUniprotResidueMapping.getByKey(pdbPos);
             if (uniprotPos > proteinLengh) {
                 System.err.println("UniProt length longer than protein length");
                 continue;
@@ -184,6 +190,9 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
             }
 
             for (Integer pdbNeighbor : pdbNeighbors) {
+                if (!pdbUniprotResidueMapping.hasValue(pdbNeighbor)) {
+                    continue;
+                }
                 int uniprotNeighbor = pdbUniprotResidueMapping.getByKey(pdbNeighbor);
                 if (uniprotNeighbor > proteinLengh) {
                     System.err.println("UniProt length longer than protein length");
@@ -274,6 +283,14 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         
         int size() {
             return keyToValMap.size();
+        }
+        
+        boolean hasKey(K k) {
+            return keyToValMap.containsKey(k);
+        }
+        
+        boolean hasValue(V v) {
+            return valToKeyMap.containsKey(v);
         }
         
         V getByKey(K k) {

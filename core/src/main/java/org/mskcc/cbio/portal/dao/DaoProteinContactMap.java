@@ -104,9 +104,6 @@ public class DaoProteinContactMap {
             rs = pstmt.executeQuery();
             
             Map<Integer, Set<Integer>> map = new HashMap<Integer, Set<Integer>>();
-            for (Integer res : residues) {
-                map.put(res, new HashSet<Integer>());
-            }
             
             while (rs.next()) {
                 int res1 = rs.getInt(1);

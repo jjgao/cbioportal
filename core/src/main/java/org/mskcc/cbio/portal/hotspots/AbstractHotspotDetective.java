@@ -194,6 +194,8 @@ public abstract class AbstractHotspotDetective implements HotspotDetective {
                 removeNonrecurrentHotspots(mapResidueHotspot);
             }
             
+            protein.setProteinLength(getLengthOfProtein(protein, mapResidueHotspot.values()));
+            
             // process all hotspots
             Map<MutatedProtein, Set<Hotspot>> mapHotspots = processSingleHotspotsOnAProtein(protein, mapResidueHotspot);
             for (Map.Entry<MutatedProtein, Set<Hotspot>> entry : mapHotspots.entrySet()) {
