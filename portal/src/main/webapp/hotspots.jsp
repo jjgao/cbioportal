@@ -117,8 +117,8 @@ String jsonStudies = JSONValue.toJSONString(studies);
     <div>       
         <label id="3d-distance-label"><b>Distance threhold (3D hotspots)</b>
         <select id="3d-distance-select">
-        <option value="extended-nearest-atoms">Extended neighbors (<7A between nearest atoms)</option>
-        <option value="extended-c-alpha">Extended neighbors (<9A between C-apha)</option>
+        <option value="extended-nearest-atoms">Extended neighbors (<5A between nearest atoms)</option>
+        <option value="extended-c-alpha">Extended neighbors (<7A between C-apha)</option>
         <option value="covalent">covalently bonded</option>
         </select>
         </label>
@@ -299,8 +299,8 @@ AlteredGene.Form = Backbone.View.extend({
                         +"&threshold_prefilter_recurrence="+thresholdPrefilterRecurrence
                         +"&separate_by_protein_change="+separate_by_protein_change
                         +"&window_linear="+window_linear
-                        +(distance_3d==="extended-nearest-atoms"?"&threshold_distance_closest_atom_3d=7":
-                            (distance_3d==="extended-c-alpha"?"&threshold_distance_c_alpha_3d=9":"&threshold_distance_error_3d=0.5"))
+                        +(distance_3d==="extended-nearest-atoms"?"&threshold_distance_closest_atom_3d=5":
+                            (distance_3d==="extended-c-alpha"?"&threshold_distance_c_alpha_3d=7":"&threshold_distance_error_3d=0.5"))
                         +"&include_mismatches_3d="+(include_mismatches_3d?"yes":"no")
                         +"&threshold_identp_3d="+identp_3d_threhold
                         +"&window_ptm="+window_ptm
