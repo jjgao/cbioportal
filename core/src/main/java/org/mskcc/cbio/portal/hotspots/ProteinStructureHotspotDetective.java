@@ -190,7 +190,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
             }
 
             for (Integer pdbNeighbor : pdbNeighbors) {
-                if (!pdbUniprotResidueMapping.hasValue(pdbNeighbor)) {
+                if (!pdbUniprotResidueMapping.hasKey(pdbNeighbor)) {
                     continue;
                 }
                 int uniprotNeighbor = pdbUniprotResidueMapping.getByKey(pdbNeighbor);
