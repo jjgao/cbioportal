@@ -62,6 +62,11 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
     @Override
     protected Map<MutatedProtein,Set<Hotspot>> processSingleHotspotsOnAProtein(MutatedProtein protein,
             Map<Integer, Hotspot> mapResidueHotspot) throws HotspotException {
+        if (protein.getProteinLength()>5000) {
+            System.out.println("Protein longer than 5000, skipping..");
+            return Collections.emptyMap();
+        }
+        
         Map<SortedSet<Integer>,Set<Hotspot>> mapResiduesHotspots3D = new HashMap<SortedSet<Integer>,Set<Hotspot>>();
         int len = protein.getProteinLength();
         Map<MutatedProtein3D,boolean[][]> contactMaps = getContactMaps(protein);
