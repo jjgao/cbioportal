@@ -335,7 +335,7 @@ AlteredGene.CancerStudy.View = Backbone.View.extend({
     template: template("cancer-study"),
     render: function() {
         this.$el.html(this.template(this.model.attributes));
-        if (this.model.get('id') in panCanStudies)
+        //if (this.model.get('id') in panCanStudies)
             this.$('option').attr('selected','selected');
             
         return this;
