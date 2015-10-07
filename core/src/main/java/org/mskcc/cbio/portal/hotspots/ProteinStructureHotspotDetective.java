@@ -70,7 +70,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         }
         
         List<Integer> counts = getMutationCountsOnProtein(mapResidueHotspot, protein.getProteinLength());
-        List<Integer>[] decoyCountsList = generateDecoys(counts, 10000);
+        List<Integer>[] decoyCountsList = generateDecoys(counts, 1000);
         
         Map<SortedSet<Integer>,Set<Hotspot>> mapResiduesHotspots3D = new HashMap<SortedSet<Integer>,Set<Hotspot>>();
         Map<MutatedProtein3D,boolean[][]> contactMaps = getContactMaps(protein);
