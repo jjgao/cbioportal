@@ -74,9 +74,12 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         
         Map<SortedSet<Integer>,Set<Hotspot>> mapResiduesHotspots3D = new HashMap<SortedSet<Integer>,Set<Hotspot>>();
         Map<MutatedProtein3D,boolean[][]> contactMaps = getContactMaps(protein);
+        int i = 0;
         for (Map.Entry<MutatedProtein3D, boolean[][]> entryContactMaps : contactMaps.entrySet()) {
             MutatedProtein3D protein3D = entryContactMaps.getKey();
             boolean[][] contactMap = entryContactMaps.getValue();
+            
+            System.out.println("\t"+(++i)+"/"+contactMaps.size()+". Processing "+protein3D.getPdbId()+"."+protein3D.getPdbChain());
             
             Set<SortedSet<Integer>> clusters = findConnectedNeighbors(contactMap, mapResidueHotspot.keySet());
             for (SortedSet<Integer> residues : clusters) {
