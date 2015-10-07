@@ -166,7 +166,9 @@ public class HotspotImpl implements Hotspot {
         }
         sb.deleteCharAt(sb.length()-1);
         
-        //sb.append(" (p="+String.format("%6.3e", getPValue()) + ")");
+        if (!Double.isNaN(pvalue)) {
+            sb.append(" (p=").append(String.format("%6.3e", getPValue())).append(")");
+        }
 
         return sb.toString();
     }
@@ -199,6 +201,11 @@ public class HotspotImpl implements Hotspot {
         }
         
         return map;
+    }
+    
+    @Override
+    public void setPValue(double pvalue) {
+        this.pvalue = pvalue;
     }
     
     @Override

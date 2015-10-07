@@ -69,8 +69,14 @@ public class Hotspot3DImpl extends HotspotImpl implements Hotspot3D {
         sb.append("#");
         for (Hotspot hs : hotspots3D) {
             MutatedProtein3D protein = MutatedProtein3D.class.cast(hs.getProtein());
-            sb.append(protein.getPdbId()).append('_').append(protein.getPdbChain()).append(";");
+            sb.append(protein.getPdbId()).append('_').append(protein.getPdbChain())
+                    .append("(").append(hs.getPValue()).append(");");
         }
+        
+        
+        sb.append(" (p=").append(getPValue()).append(")");
+        
+
         return sb.toString();
     }
     

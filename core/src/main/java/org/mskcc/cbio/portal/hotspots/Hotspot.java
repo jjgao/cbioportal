@@ -83,6 +83,12 @@ public interface Hotspot {
      * 
      * @return 
      */
+    public void setPValue(double pValue);
+    
+    /**
+     * 
+     * @return 
+     */
     public double getPValue();
     
     /**

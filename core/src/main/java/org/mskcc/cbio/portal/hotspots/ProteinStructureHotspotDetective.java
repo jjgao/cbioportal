@@ -27,6 +27,7 @@
 package org.mskcc.cbio.portal.hotspots;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.apache.commons.lang.ArrayUtils;
 import org.mskcc.cbio.portal.dao.DaoException;
 import org.mskcc.cbio.portal.dao.DaoPdbUniprotResidueMapping;
 import org.mskcc.cbio.portal.dao.DaoProteinContactMap;
@@ -67,8 +69,10 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
             return Collections.emptyMap();
         }
         
+        List<Integer> counts = getMutationCountsOnProtein(mapResidueHotspot, protein.getProteinLength());
+        List<Integer>[] decoyCountsList = generateDecoys(counts, 10000);
+        
         Map<SortedSet<Integer>,Set<Hotspot>> mapResiduesHotspots3D = new HashMap<SortedSet<Integer>,Set<Hotspot>>();
-        int len = protein.getProteinLength();
         Map<MutatedProtein3D,boolean[][]> contactMaps = getContactMaps(protein);
         for (Map.Entry<MutatedProtein3D, boolean[][]> entryContactMaps : contactMaps.entrySet()) {
             MutatedProtein3D protein3D = entryContactMaps.getKey();
@@ -77,8 +81,16 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
             Set<SortedSet<Integer>> clusters = findConnectedNeighbors(contactMap, mapResidueHotspot.keySet());
             for (SortedSet<Integer> residues : clusters) {
                 Hotspot hotspot3D = new HotspotImpl(protein3D, numberOfsequencedCases, residues);
+                
+                int maxCap = 0;
                 for (int residue : residues) {
-                    hotspot3D.mergeHotspot(mapResidueHotspot.get(residue));
+                    Hotspot hotspot = mapResidueHotspot.get(residue);
+                    hotspot3D.mergeHotspot(hotspot);
+                    
+                    int num = hotspot.getPatients().size();
+                    if (num > maxCap) {
+                        maxCap = num;
+                    }
                 }
                 
                 if (hotspot3D.getPatients().size()>=parameters.getThresholdSamples()) {
@@ -88,7 +100,11 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                         mapResiduesHotspots3D.put(residues, hotspots3D);
                     }
                     
+                    double p = getP(contactMap, decoyCountsList, maxCap, hotspot3D.getPatients().size());
+                    hotspot3D.setPValue(p);
+                    
                     hotspots3D.add(hotspot3D);
+                    
                 }
             }
         }
@@ -107,6 +123,54 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         }
         
         return Collections.singletonMap(protein, hotspots3D);
+    }
+    
+    private List<Integer> getMutationCountsOnProtein(Map<Integer, Hotspot> mapResidueHotspot, int len) {
+        int[] ret = new int[len+1];
+        for (Map.Entry<Integer, Hotspot> entry : mapResidueHotspot.entrySet()) {
+            ret[entry.getKey()] = entry.getValue().getPatients().size();
+        }
+        return Arrays.asList(ArrayUtils.toObject(ret));
+    }
+    
+    private List<Integer>[] generateDecoys(List<Integer> counts, int times) {
+        List<Integer>[] decoys = new List[times];
+        for (int i=0; i<times; i++) {
+            decoys[i] = new ArrayList<Integer>(counts);
+            Collections.shuffle(decoys[i]);
+        }
+        return decoys;
+    }
+    
+    private double getP(boolean[][] graph, List<Integer>[] decoyCountsList, int maxCap, int targetCount) {
+        int d = 0;
+        for (int i=0; i<decoyCountsList.length; i++) {
+            if (isDetectedInDecoy(graph, decoyCountsList[i], maxCap, targetCount)) {
+                d++;
+            }
+        }
+        
+        return 1.0 * d / decoyCountsList.length;
+    }
+    
+    private boolean isDetectedInDecoy(boolean[][] graph, List<Integer> decoyCounts, int maxCap, int targetCount) {
+        for (int i=1; i<graph.length; i++) {
+            int count = 0;
+            for (int j=1; j<graph.length; j++) {
+                if (graph[i][j]) {
+                    int c = decoyCounts.get(j);
+                    if (c > maxCap) {
+                        c = maxCap;
+                    }
+                    count += c;
+                    if (count >= targetCount) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
     }
     
     private Set<SortedSet<Integer>> findConnectedNeighbors(boolean[][] graph, Set<Integer> nodes) {
