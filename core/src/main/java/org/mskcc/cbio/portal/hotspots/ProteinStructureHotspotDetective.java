@@ -80,6 +80,10 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
             
             Set<SortedSet<Integer>> clusters = findConnectedNeighbors(contactMap, mapResidueHotspot.keySet());
             for (SortedSet<Integer> residues : clusters) {
+                if (residues.size()<=1) {
+                    continue;
+                }
+                
                 Hotspot hotspot3D = new HotspotImpl(protein3D, numberOfsequencedCases, residues);
                 
                 int maxCap = 0;
