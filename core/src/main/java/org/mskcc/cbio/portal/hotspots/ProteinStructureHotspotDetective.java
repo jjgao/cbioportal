@@ -27,7 +27,6 @@
 package org.mskcc.cbio.portal.hotspots;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -36,10 +35,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import org.apache.commons.lang.ArrayUtils;
+import org.bouncycastle.util.Arrays;
 import org.mskcc.cbio.portal.dao.DaoException;
 import org.mskcc.cbio.portal.dao.DaoPdbUniprotResidueMapping;
 import org.mskcc.cbio.portal.dao.DaoProteinContactMap;
@@ -69,19 +69,25 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
             return Collections.emptyMap();
         }
         
-        List<Integer> counts = getMutationCountsOnProtein(mapResidueHotspot, protein.getProteinLength());
-        List<Integer>[] decoyCountsList = generateDecoys(counts, 1000);
+        int[] counts = getMutationCountsOnProtein(mapResidueHotspot, protein.getProteinLength());
         
         Map<SortedSet<Integer>,Set<Hotspot>> mapResiduesHotspots3D = new HashMap<SortedSet<Integer>,Set<Hotspot>>();
-        Map<MutatedProtein3D,boolean[][]> contactMaps = getContactMaps(protein);
+        Map<MutatedProtein3D,ContactMap> contactMaps = getContactMaps(protein);
         int i = 0;
-        for (Map.Entry<MutatedProtein3D, boolean[][]> entryContactMaps : contactMaps.entrySet()) {
+        for (Map.Entry<MutatedProtein3D, ContactMap> entryContactMaps : contactMaps.entrySet()) {
             MutatedProtein3D protein3D = entryContactMaps.getKey();
-            boolean[][] contactMap = entryContactMaps.getValue();
+            ContactMap contactMap = entryContactMaps.getValue();
+            
+            if (contactMap.getProteinRight()>protein.getProteinLength()) {
+                System.err.println("\tMapped Protein resisue longer than protein length.");
+                continue;
+            }
+            
+            int[][] decoyCountsList = generateDecoys(counts, contactMap.getProteinLeft(), contactMap.getProteinRight()+1, 1000);
             
             System.out.println("\t"+(++i)+"/"+contactMaps.size()+". Processing "+protein3D.getPdbId()+"."+protein3D.getPdbChain());
             
-            Set<SortedSet<Integer>> clusters = findConnectedNeighbors(contactMap, mapResidueHotspot.keySet());
+            Set<SortedSet<Integer>> clusters = findConnectedNeighbors(contactMap.getContact(), mapResidueHotspot.keySet());
             for (SortedSet<Integer> residues : clusters) {
                 if (residues.size()<=1) {
                     continue;
@@ -132,27 +138,42 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         return Collections.singletonMap(protein, hotspots3D);
     }
     
-    private List<Integer> getMutationCountsOnProtein(Map<Integer, Hotspot> mapResidueHotspot, int len) {
+    private int[] getMutationCountsOnProtein(Map<Integer, Hotspot> mapResidueHotspot, int len) {
         int[] ret = new int[len+1];
         for (Map.Entry<Integer, Hotspot> entry : mapResidueHotspot.entrySet()) {
             ret[entry.getKey()] = entry.getValue().getPatients().size();
         }
-        return Arrays.asList(ArrayUtils.toObject(ret));
+        return ret;//Arrays.asList(ArrayUtils.toObject(ret));
     }
     
-    private List<Integer>[] generateDecoys(List<Integer> counts, int times) {
-        List<Integer>[] decoys = new List[times];
+    private int[][] generateDecoys(int[] counts, int left, int right, int times) {
+        int[][] decoys = new int[times][];
         for (int i=0; i<times; i++) {
-            decoys[i] = new ArrayList<Integer>(counts);
-            Collections.shuffle(decoys[i]);
+            decoys[i] = Arrays.clone(counts);
+            shuffleArray(decoys[i], left, right);
         }
         return decoys;
     }
     
-    private double getP(boolean[][] graph, List<Integer>[] decoyCountsList, int maxCap, int targetCount) {
+    public static void shuffleArray(int[] a, int left, int right) {
+        Random random = new Random();
+        random.nextInt();
+        for (int i = left; i < right; i++) {
+          int change = i + random.nextInt(right - i);
+          swap(a, i, change);
+        }
+    }
+
+    private static void swap(int[] a, int i, int change) {
+        int helper = a[i];
+        a[i] = a[change];
+        a[change] = helper;
+    }
+    
+    private double getP(ContactMap contactMap, int[][] decoyCountsList, int maxCap, int targetCount) {
         int d = 0;
         for (int i=0; i<decoyCountsList.length; i++) {
-            if (isDetectedInDecoy(graph, decoyCountsList[i], maxCap, targetCount)) {
+            if (isDetectedInDecoy(contactMap, decoyCountsList[i], maxCap, targetCount)) {
                 d++;
             }
         }
@@ -160,12 +181,15 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         return 1.0 * d / decoyCountsList.length;
     }
     
-    private boolean isDetectedInDecoy(boolean[][] graph, List<Integer> decoyCounts, int maxCap, int targetCount) {
-        for (int i=1; i<graph.length; i++) {
+    private boolean isDetectedInDecoy(ContactMap contactMap, int[] decoyCounts, int maxCap, int targetCount) {
+        boolean[][] graph = contactMap.getContact();
+        int l = contactMap.getProteinLeft();
+        int r = contactMap.getProteinRight();
+        for (int i=l; i<r; i++) {
             int count = 0;
-            for (int j=1; j<graph.length; j++) {
+            for (int j=l; j<r; j++) {
                 if (graph[i][j]) {
-                    int c = decoyCounts.get(j);
+                    int c = decoyCounts[j];
                     if (c > maxCap) {
                         c = maxCap;
                     }
@@ -225,9 +249,9 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         return ret;
     }
     
-    private Map<MutatedProtein3D,boolean[][]> getContactMaps(MutatedProtein protein) throws HotspotException {
+    private Map<MutatedProtein3D,ContactMap> getContactMaps(MutatedProtein protein) throws HotspotException {
         try {
-            Map<MutatedProtein3D,boolean[][]> contactMaps = new HashMap<MutatedProtein3D,boolean[][]>();
+            Map<MutatedProtein3D,ContactMap> contactMaps = new HashMap<MutatedProtein3D,ContactMap>();
             Map<MutatedProtein3D,List<PdbUniprotAlignment>> mapAlignments = getPdbUniprotAlignments(protein);
             for (Map.Entry<MutatedProtein3D,List<PdbUniprotAlignment>> entryMapAlignments : mapAlignments.entrySet()) {
                 MutatedProtein3D protein3D = entryMapAlignments.getKey();
@@ -235,7 +259,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                 OneToOneMap<Integer, Integer> pdbUniprotResidueMapping = getPdbUniprotResidueMapping(alignments);
                 Map<Integer, Set<Integer>> pdbContactMap = getPdbContactMap(protein3D);
                 
-                boolean[][] contactMap = getUniProtContactMap(pdbContactMap, pdbUniprotResidueMapping, protein.getProteinLength());
+                ContactMap contactMap = getUniProtContactMap(pdbContactMap, pdbUniprotResidueMapping, protein.getProteinLength());
                 
                 contactMaps.put(protein3D, contactMap);
             }
@@ -246,8 +270,12 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         }
     }
     
-    private boolean[][] getUniProtContactMap(Map<Integer, Set<Integer>> pdbContactMap, OneToOneMap<Integer, Integer> pdbUniprotResidueMapping, int proteinLengh) {
-        boolean[][] ret = new boolean[proteinLengh+1][proteinLengh+1];
+    private ContactMap getUniProtContactMap(Map<Integer, Set<Integer>> pdbContactMap, OneToOneMap<Integer, Integer> pdbUniprotResidueMapping, int proteinLength) {
+        ContactMap contactMap = new ContactMap(proteinLength);
+        contactMap.setProteinLeft(pdbUniprotResidueMapping.getSmallestValue());
+        contactMap.setProteinRight(pdbUniprotResidueMapping.getLargestValue());
+        
+        boolean[][] matrix = contactMap.getContact();
         
         for (Map.Entry<Integer, Set<Integer>> entryPdbContactMap : pdbContactMap.entrySet()) {
             int pdbPos = entryPdbContactMap.getKey();
@@ -256,8 +284,8 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
             }
             
             int uniprotPos = pdbUniprotResidueMapping.getByKey(pdbPos);
-            if (uniprotPos > proteinLengh) {
-                System.err.println("UniProt length longer than protein length");
+            if (uniprotPos > proteinLength) {
+                System.err.println("Mapped Protein resisue longer than protein length");
                 continue;
             }
             Set<Integer> pdbNeighbors = entryPdbContactMap.getValue();
@@ -270,16 +298,16 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                     continue;
                 }
                 int uniprotNeighbor = pdbUniprotResidueMapping.getByKey(pdbNeighbor);
-                if (uniprotNeighbor > proteinLengh) {
-                    System.err.println("UniProt length longer than protein length");
+                if (uniprotNeighbor > proteinLength) {
+                    System.err.println("Mapped Protein resisue longer than protein length");
                     continue;
                 }
-                ret[uniprotPos][uniprotNeighbor] = true;
-                ret[uniprotNeighbor][uniprotPos] = true;
+                matrix[uniprotPos][uniprotNeighbor] = true;
+                matrix[uniprotNeighbor][uniprotPos] = true;
             }
         }
         
-        return ret;
+        return contactMap;
     }
     
     private Map<Integer, Set<Integer>> getPdbContactMap(MutatedProtein3D protein3D) throws DaoException {
@@ -341,7 +369,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         }
     }
     
-    protected final class OneToOneMap<K, V> {
+    final class OneToOneMap<K extends Comparable, V extends Comparable> {
         private Map<K, V> keyToValMap;
         private Map<V, K> valToKeyMap;
         
@@ -406,5 +434,52 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                 }
             }
         }
+        
+        K getSmallestKey() {
+            return (K) Collections.min(keyToValMap.keySet());
+        }
+        
+        K getLargestKey() {
+            return (K) Collections.max(keyToValMap.keySet());
+        }
+        
+        V getSmallestValue() {
+            return (V) Collections.min(valToKeyMap.keySet());
+        }
+        
+        V getLargestValue() {
+            return (V) Collections.max(valToKeyMap.keySet());
+        }
+    }
+    
+    final class ContactMap {
+        private boolean[][] contact;
+        private int proteinLeft, proteinRight;
+        
+        ContactMap(int len) {
+            contact = new boolean[len+1][len+1];
+        }
+
+        public boolean[][] getContact() {
+            return contact;
+        }
+
+        public int getProteinLeft() {
+            return proteinLeft;
+        }
+
+        public void setProteinLeft(int proteinLeft) {
+            this.proteinLeft = proteinLeft;
+        }
+
+        public int getProteinRight() {
+            return proteinRight;
+        }
+
+        public void setProteinRight(int proteinRight) {
+            this.proteinRight = proteinRight;
+        }
+
+        
     }
 }

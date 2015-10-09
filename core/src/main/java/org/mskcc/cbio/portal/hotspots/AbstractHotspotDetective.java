@@ -122,7 +122,7 @@ public abstract class AbstractHotspotDetective implements HotspotDetective {
             MutatedProtein currProtein = null;
             Map<Integer, Hotspot> mapResidueHotspot = new HashMap<Integer, Hotspot>();
             
-            int i = 0;
+            int count = 0;
             while (rs.next()) {
                 int geneticProfileId = rs.getInt("GENETIC_PROFILE_ID");
                 String uniprotId = rs.getString("ONCOTATOR_UNIPROT_ENTRY_NAME");
@@ -141,7 +141,8 @@ public abstract class AbstractHotspotDetective implements HotspotDetective {
                 newProtein.setUniprotAcc(uniprotAcc);
                 
                 if (!newProtein.equals(currProtein)) {
-                    //System.out.println(count++);
+                    System.out.println(""+(++count)+". Processing "+currProtein.getGene().getEntrezGeneId()
+                    +" "+currProtein.getGene().getHugoGeneSymbolAllCaps());
                     recordHotspots(currProtein, mapResidueHotspot);
                     currProtein = newProtein;
                     mapResidueHotspot.clear();
@@ -170,7 +171,7 @@ public abstract class AbstractHotspotDetective implements HotspotDetective {
                 }
                 
             }
-            System.out.println(""+(++i)+". Processing "+currProtein.getGene().getEntrezGeneId()
+            System.out.println(""+(++count)+". Processing "+currProtein.getGene().getEntrezGeneId()
                     +" "+currProtein.getGene().getHugoGeneSymbolAllCaps());
             recordHotspots(currProtein, mapResidueHotspot);
         } catch (SQLException e) {
