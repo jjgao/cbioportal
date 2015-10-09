@@ -49,6 +49,7 @@ public class HotspotDetectiveParametersImpl implements HotspotDetectiveParameter
     private boolean includingMismatchesFor3DHotspots;
     private int prefilterThresholdSamplesOnSingleResidue;
     private boolean mergeOverlappingHotspots;
+    private double pValueThreshold;
 
     @Override
     public Collection<Integer> getCancerStudyIds() {
@@ -208,5 +209,15 @@ public class HotspotDetectiveParametersImpl implements HotspotDetectiveParameter
     @Override
     public int getPtmHotspotWindowSize() {
         return ptmHotspotWindowSize;
+    }
+
+    @Override
+    public double getPValueThreshold() {
+        return pValueThreshold;
+    }
+
+    @Override
+    public void setPValueThreshold(double pValueThreshold) {
+        this.pValueThreshold = pValueThreshold;
     }
 }

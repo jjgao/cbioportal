@@ -71,6 +71,7 @@ public class HotspotsServlet extends HttpServlet {
     public static final String LINEAR_HOTSPOT_WINDOW = "window_linear";
     public static final String SINGLE_HOTSPOT_SEPARATE_BY_PROTEIN_CHANGE = "separate_by_protein_change";
     public static final String THRESHOLD_PREFILTER_RECURRENCE = "threshold_prefilter_recurrence";
+    public static final String THRESHOLD_PVALUE = "threshold_pvalue";
     
     /** 
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
@@ -87,6 +88,8 @@ public class HotspotsServlet extends HttpServlet {
         int threshold = Integer.parseInt(request.getParameter(THRESHOLD_SAMPLES));
         int thresholdHyper = Integer.parseInt(request.getParameter(THRESHOLD_MUTATIONS_HYPERMUTATOR));
         int thresholdPrefilterRecurrence = Integer.parseInt(request.getParameter(THRESHOLD_PREFILTER_RECURRENCE));
+        String strThresholdPValue = request.getParameter(THRESHOLD_PVALUE);
+        double thresholdPValue = strThresholdPValue==null || strThresholdPValue.isEmpty()?1:Double.parseDouble(strThresholdPValue);
         String genes = request.getParameter(GENES);
         Set<Long>  entrezGeneIds = new HashSet<Long>();
         Set<Long>  excludeEntrezGeneIds = new HashSet<Long>();
@@ -127,6 +130,7 @@ public class HotspotsServlet extends HttpServlet {
             hotspotDetectiveParameters.setThresholdHyperMutator(thresholdHyper);
             hotspotDetectiveParameters.setThresholdSamples(threshold);
             hotspotDetectiveParameters.setPrefilterThresholdSamplesOnSingleResidue(thresholdPrefilterRecurrence);
+            hotspotDetectiveParameters.setPValueThreshold(thresholdPValue);
                 
             HotspotDetective hotspotDetective;
             if (hotspotType.equalsIgnoreCase("single")) {

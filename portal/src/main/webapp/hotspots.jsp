@@ -148,6 +148,11 @@ String jsonStudies = JSONValue.toJSONString(studies);
         <input type='text' id='threshold-number-samples-input' value="10">
         </label>
     </div>
+    <div>
+        <label><b>Threshold of p-value: </b>
+        <input type='text' id='threshold-pvalue' value="0.1">
+        </label>
+    </div>
     <br/>
     <div>
         <label id="exclude-hypermutator-label">
@@ -289,11 +294,13 @@ AlteredGene.Form = Backbone.View.extend({
         var window_ptm = this.$('#ptm-window-input').val();
         // var ptm_type = 'PHOSPHORYLATION,UBIQUITINATION,SUMOYLATION,ACETYLATION';
         var threshold = this.$('#threshold-number-samples-input').val();
+        var threshold_pvalue = this.$('#threshold-pvalue').val();
         var thresholdHyper = this.$('#exclude-hypermutator-checkbox').prop('checked') ? 1000 : -1;
         var thresholdPrefilterRecurrence = this.$('#prefilter-recurrence-checkbox').prop('checked') ? $('#prefilter-recurrence-input').val() : 0;
         var routerTo = "submit/hotspot_type="+hotspot_type
                         +"&mutation_type="+mutation_type.join(",")
                         +"&genes="+genes
+                        +"&threshold_pvalue="+threshold_pvalue
                         +"&threshold_samples="+threshold
                         +"&threshold_hypermutator="+thresholdHyper
                         +"&threshold_prefilter_recurrence="+thresholdPrefilterRecurrence

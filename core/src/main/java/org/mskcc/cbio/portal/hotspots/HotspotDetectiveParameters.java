@@ -220,4 +220,8 @@ public interface HotspotDetectiveParameters {
      * @param mergeOverlappingHotspots 
      */
     public void setMergeOverlappingHotspots(boolean mergeOverlappingHotspots);
+    
+    public double getPValueThreshold();
+    
+    public void setPValueThreshold(double pValueThreshold);
 }

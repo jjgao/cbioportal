@@ -141,9 +141,11 @@ public abstract class AbstractHotspotDetective implements HotspotDetective {
                 newProtein.setUniprotAcc(uniprotAcc);
                 
                 if (!newProtein.equals(currProtein)) {
-                    System.out.println(""+(++count)+". Processing "+currProtein.getGene().getEntrezGeneId()
-                    +" "+currProtein.getGene().getHugoGeneSymbolAllCaps());
-                    recordHotspots(currProtein, mapResidueHotspot);
+                    if (!mapResidueHotspot.isEmpty()) {
+                        System.out.println(""+(++count)+". Processing "+currProtein.getGene().getEntrezGeneId()
+                            +" "+currProtein.getGene().getHugoGeneSymbolAllCaps());
+                        recordHotspots(currProtein, mapResidueHotspot);
+                    }
                     currProtein = newProtein;
                     mapResidueHotspot.clear();
                 }
@@ -192,22 +194,30 @@ public abstract class AbstractHotspotDetective implements HotspotDetective {
     }
     
     private void recordHotspots(MutatedProtein protein, Map<Integer, Hotspot> mapResidueHotspot) throws HotspotException {
-        if (!mapResidueHotspot.isEmpty()) { // skip first one
-            if (parameters.getPrefilterThresholdSamplesOnSingleResidue()>1) {
-                removeNonrecurrentHotspots(mapResidueHotspot);
+        if (parameters.getPrefilterThresholdSamplesOnSingleResidue()>1) {
+            removeNonrecurrentHotspots(mapResidueHotspot);
+        }
+
+        protein.setProteinLength(getLengthOfProtein(protein, mapResidueHotspot.values()));
+
+        // process all hotspots
+        Map<MutatedProtein, Set<Hotspot>> mapHotspots = processSingleHotspotsOnAProtein(protein, mapResidueHotspot);
+        for (Map.Entry<MutatedProtein, Set<Hotspot>> entry : mapHotspots.entrySet()) {
+            MutatedProtein mutatedProtein = entry.getKey();
+            Set<Hotspot> hotspotsOnAProtein = entry.getValue();
+            if (!hotspotsOnAProtein.isEmpty()) {
+                mutatedProtein.setProteinLength(getLengthOfProtein(protein, hotspotsOnAProtein));
+                mutatedProtein.setNumberOfMutations(getNumberOfAllMutationOnProtein(hotspotsOnAProtein)); // only have to set once
             }
-            
-            protein.setProteinLength(getLengthOfProtein(protein, mapResidueHotspot.values()));
-            
-            // process all hotspots
-            Map<MutatedProtein, Set<Hotspot>> mapHotspots = processSingleHotspotsOnAProtein(protein, mapResidueHotspot);
-            for (Map.Entry<MutatedProtein, Set<Hotspot>> entry : mapHotspots.entrySet()) {
-                MutatedProtein mutatedProtein = entry.getKey();
-                Set<Hotspot> hotspotsOnAProtein = entry.getValue();
-                if (!hotspotsOnAProtein.isEmpty()) {
-                    mutatedProtein.setProteinLength(getLengthOfProtein(protein, hotspotsOnAProtein));
-                    mutatedProtein.setNumberOfMutations(getNumberOfAllMutationOnProtein(hotspotsOnAProtein)); // only have to set once
+
+            double p = parameters.getPValueThreshold();
+            if (p>0 && p<1) {
+                for (Hotspot hotspot : hotspotsOnAProtein) {
+                    if (hotspot.getPValue()<=p) {
+                        hotspots.add(hotspot);
+                    }
                 }
+            } else {
                 hotspots.addAll(hotspotsOnAProtein);
             }
         }
