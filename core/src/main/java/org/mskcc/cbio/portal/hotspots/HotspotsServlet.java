@@ -26,6 +26,7 @@
 **/
 package org.mskcc.cbio.portal.hotspots;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
@@ -242,7 +243,27 @@ public class HotspotsServlet extends HttpServlet {
                     }
                     out.write("\n");
                 }
-            }
+            } else if (format.equalsIgnoreCase("text-dump")) {
+                File file = File.createTempFile("hotspots-",".txt");
+                System.out.println("Save to: "+file.getAbsolutePath());
+                out = new PrintWriter(file);
+                out.write("Alteration\t");
+                out.write(StringUtils.join(studyStableIds,"\t"));
+                out.write("\n");
+                for (Map.Entry<String,Map<String, Map<String,Set<String>>>> entry : map.entrySet()) {
+                    String keyword = entry.getKey();
+                    out.write(keyword);
+                    Map<String, Map<String,Set<String>>> mapStudyCaseMut = entry.getValue();
+                    for (String study : studyStableIds) {
+                        Map<String,Set<String>> mapCaseMut = mapStudyCaseMut.get(study);
+                        out.write("\t");
+                        if (mapCaseMut!=null && !mapCaseMut.isEmpty()) {
+                            out.write(Integer.toString(mapCaseMut.size()));
+                        }
+                    }
+                    out.write("\n");
+                }
+            } 
         } finally {            
             out.close();
         }
