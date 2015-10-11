@@ -39,6 +39,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.bouncycastle.util.Arrays;
 import org.mskcc.cbio.portal.dao.DaoException;
 import org.mskcc.cbio.portal.dao.DaoPdbUniprotResidueMapping;
@@ -83,7 +86,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                 continue;
             }
             
-            int[][] decoyCountsList = generateDecoys(counts, contactMap.getProteinLeft(), contactMap.getProteinRight()+1, 1000);
+            int[][] decoyCountsList = generateDecoys(counts, contactMap.getProteinLeft(), contactMap.getProteinRight()+1, 10000);
             
             System.out.println("\t"+(++i)+"/"+contactMaps.size()+". Processing "+protein3D.getPdbId()+"."+protein3D.getPdbChain());
             
@@ -170,15 +173,38 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         a[change] = helper;
     }
     
-    private double getP(ContactMap contactMap, int[][] decoyCountsList, int maxCap, int targetCount) {
-        int d = 0;
-        for (int i=0; i<decoyCountsList.length; i++) {
-            if (isDetectedInDecoy(contactMap, decoyCountsList[i], maxCap, targetCount)) {
-                d++;
+    private double getP(final ContactMap contactMap, int[][] decoyCountsList, final int maxCap, final int targetCount) {
+        final AtomicInteger d = new AtomicInteger(0);
+        
+        int nDecoy = decoyCountsList.length;
+        int nThread = 50;
+        int bin = nDecoy / nThread;
+        Thread[] threads = new Thread[nThread];
+        for (int i = 0; i < nThread; i++) {
+            final int[][] decoys = java.util.Arrays.copyOfRange(decoyCountsList, i*bin, (i+1)*bin);
+            threads[i] = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int[] decoy : decoys) {
+                        if (isDetectedInDecoy(contactMap, decoy, maxCap, targetCount)) {
+                            d.incrementAndGet();
+                        }
+                    }
+                }
+            });
+            threads[i].start();
+        }
+        
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            }catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
             }
         }
         
-        return 1.0 * d / decoyCountsList.length;
+        
+        return 1.0 * d.get() / decoyCountsList.length;
     }
     
     private boolean isDetectedInDecoy(ContactMap contactMap, int[] decoyCounts, int maxCap, int targetCount) {
