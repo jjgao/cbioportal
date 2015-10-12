@@ -27,6 +27,7 @@
 package org.mskcc.cbio.portal.hotspots;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -40,9 +41,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.bouncycastle.util.Arrays;
 import org.mskcc.cbio.portal.dao.DaoException;
 import org.mskcc.cbio.portal.dao.DaoPdbUniprotResidueMapping;
 import org.mskcc.cbio.portal.dao.DaoProteinContactMap;
@@ -152,7 +150,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
     private int[][] generateDecoys(int[] counts, int left, int right, int times) {
         int[][] decoys = new int[times][];
         for (int i=0; i<times; i++) {
-            decoys[i] = Arrays.clone(counts);
+            decoys[i] = Arrays.copyOf(counts, counts.length);
             shuffleArray(decoys[i], left, right);
         }
         return decoys;
