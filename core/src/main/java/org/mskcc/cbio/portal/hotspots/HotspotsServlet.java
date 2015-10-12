@@ -26,31 +26,15 @@
 **/
 package org.mskcc.cbio.portal.hotspots;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.mskcc.cbio.portal.dao.DaoCancerStudy;
-import org.mskcc.cbio.portal.dao.DaoGeneOptimized;
-import org.mskcc.cbio.portal.dao.DaoGeneticProfile;
-import org.mskcc.cbio.portal.dao.DaoPatient;
-import org.mskcc.cbio.portal.dao.DaoSample;
-import org.mskcc.cbio.portal.model.CancerStudy;
-import org.mskcc.cbio.portal.model.CanonicalGene;
-import org.mskcc.cbio.portal.model.ExtendedMutation;
-import org.mskcc.cbio.portal.servlet.QueryBuilder;
 
 /**
  *
@@ -83,190 +67,29 @@ public class HotspotsServlet extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String studyStableIdsStr = request.getParameter(QueryBuilder.CANCER_STUDY_ID);
-        String hotspotType = request.getParameter(HOTSPOT_TYPE);
-        String mutationType = request.getParameter(MUTATION_TYPE);
-        int threshold = Integer.parseInt(request.getParameter(THRESHOLD_SAMPLES));
-        int thresholdHyper = Integer.parseInt(request.getParameter(THRESHOLD_MUTATIONS_HYPERMUTATOR));
-        int thresholdPrefilterRecurrence = Integer.parseInt(request.getParameter(THRESHOLD_PREFILTER_RECURRENCE));
-        String strThresholdPValue = request.getParameter(THRESHOLD_PVALUE);
-        double thresholdPValue = strThresholdPValue==null || strThresholdPValue.isEmpty()?1:Double.parseDouble(strThresholdPValue);
-        String genes = request.getParameter(GENES);
-        Set<Long>  entrezGeneIds = new HashSet<Long>();
-        Set<Long>  excludeEntrezGeneIds = new HashSet<Long>();
-        if (genes!=null) {
-            DaoGeneOptimized daoGeneOptimized = DaoGeneOptimized.getInstance();
-            for (String gene : genes.split("[, ]+")) {
-                CanonicalGene canonicalGene = daoGeneOptimized.getGene(gene);
-                if (canonicalGene!=null) {
-                    entrezGeneIds.add(canonicalGene.getEntrezGeneId());
-                } else if (gene.startsWith("-")) {
-                    canonicalGene = daoGeneOptimized.getGene(gene.substring(1));
-                    if (canonicalGene!=null) {
-                        excludeEntrezGeneIds.add(canonicalGene.getEntrezGeneId());
-                    }
-                }
-            };
-        }
-        
-        Set<Hotspot> hotspots = Collections.emptySet();
-        Map<Integer,String> cancerStudyIdMapping = new HashMap<Integer,String>();
-        String[] studyStableIds = studyStableIdsStr.split("[, ]+");
-        
-        try {
-            Set<Integer> studyIds = new HashSet<Integer>();
-            for (String stableId : studyStableIds) {
-                CancerStudy study = DaoCancerStudy.getCancerStudyByStableId(stableId);
-                if (study!=null) {
-                    studyIds.add(study.getInternalId());
-                    cancerStudyIdMapping.put(study.getInternalId(), stableId);
-                }
-            }
-            
-            HotspotDetectiveParameters hotspotDetectiveParameters = new HotspotDetectiveParametersImpl();
-            hotspotDetectiveParameters.setCancerStudyIds(studyIds);
-            hotspotDetectiveParameters.setEntrezGeneIds(entrezGeneIds);
-            hotspotDetectiveParameters.setExcludeEntrezGeneIds(excludeEntrezGeneIds);
-            hotspotDetectiveParameters.setMutationTypes(Arrays.asList(mutationType.split("[, ]+")));
-            hotspotDetectiveParameters.setThresholdHyperMutator(thresholdHyper);
-            hotspotDetectiveParameters.setThresholdSamples(threshold);
-            hotspotDetectiveParameters.setPrefilterThresholdSamplesOnSingleResidue(thresholdPrefilterRecurrence);
-            hotspotDetectiveParameters.setPValueThreshold(thresholdPValue);
-                
-            HotspotDetective hotspotDetective;
-            if (hotspotType.equalsIgnoreCase("single")) {
-                boolean separateByProteinChange = Boolean.parseBoolean(request.getParameter(SINGLE_HOTSPOT_SEPARATE_BY_PROTEIN_CHANGE));
-                hotspotDetectiveParameters.setSeperateByProteinChangesForSingleResidueHotspot(separateByProteinChange);
-                hotspotDetective = new SingleHotspotDetective(hotspotDetectiveParameters);
-            } else if (hotspotType.equalsIgnoreCase("linear")) {
-                int window = Integer.parseInt(request.getParameter(LINEAR_HOTSPOT_WINDOW));
-                hotspotDetectiveParameters.setLinearSpotWindowSize(window);
-                hotspotDetective = new LinearHotspotDetective(hotspotDetectiveParameters);
-            } else if (hotspotType.equalsIgnoreCase("3d")) {
-                String strThresholdDisClosestAtoms = request.getParameter(THRESHOLD_DISTANCE_CLOSEST_DISTANCE_CONTACT_MAP);
-                double thresholdDisClosestAtoms = strThresholdDisClosestAtoms==null?0:Double.parseDouble(strThresholdDisClosestAtoms);
-                hotspotDetectiveParameters.setDistanceClosestAtomsThresholdFor3DHotspots(thresholdDisClosestAtoms);
-                
-                String strThresholdDisCAlpha = request.getParameter(THRESHOLD_DISTANCE_C_ALPHA_CONTACT_MAP);
-                double thresholdDisCAlpha = strThresholdDisCAlpha==null?0:Double.parseDouble(strThresholdDisCAlpha);
-                hotspotDetectiveParameters.setDistanceCAlphaThresholdFor3DHotspots(thresholdDisCAlpha);
-                
-                String strThresholdDisError = request.getParameter(THRESHOLD_DISTANCE_ERROR_CONTACT_MAP);
-                double thresholdDisError = strThresholdDisError==null?0:Double.parseDouble(strThresholdDisError);
-                hotspotDetectiveParameters.setDistanceErrorThresholdFor3DHotspots(thresholdDisError);
-                
-                
-                
-                String strThresholdIdentp = request.getParameter(THRESHOLD_UNIPROT_PDB_ALIGNMENT_IDENTP);
-                double thresholdIdentp = strThresholdIdentp==null?0:Double.parseDouble(strThresholdIdentp);
-                hotspotDetectiveParameters.setIdentpThresholdFor3DHotspots(thresholdIdentp);
-                hotspotDetectiveParameters.setIncludingMismatchesFor3DHotspots(false);
-                
-                hotspotDetective = new ProteinStructureHotspotDetective(hotspotDetectiveParameters);
-            } else if (hotspotType.startsWith("ptm")) {
-                int thresholdDis = Integer.parseInt(request.getParameter(PTM_HOTSPOT_WINDOW));
-//                String ptmType = request.getParameter(PTM_TYPE);
-                hotspotDetectiveParameters.setPtmHotspotWindowSize(thresholdDis);
-                hotspotDetective = new PTMHotspotDetective(hotspotDetectiveParameters);
-//            } else if (type.equalsIgnoreCase("truncating-sep")) {
-//                 mapKeywordStudyCaseMut = DaoMutation.getTruncatingMutatationStatistics(
-//                    studyIds.toString(), threshold, concatEntrezGeneIds, concatExcludeEntrezGeneIds);
-            } else if (hotspotType.equalsIgnoreCase("3d-ptm")) {
-                String strThresholdIdentp = request.getParameter(THRESHOLD_UNIPROT_PDB_ALIGNMENT_IDENTP);
-                double thresholdIdentp = strThresholdIdentp==null?0:Double.parseDouble(strThresholdIdentp);
-                hotspotDetectiveParameters.setIdentpThresholdFor3DHotspots(thresholdIdentp);
-                hotspotDetectiveParameters.setIncludingMismatchesFor3DHotspots(false);
-                
-                 hotspotDetective = new PTM3DHotspotDetective(hotspotDetectiveParameters);
-            } else {
-                throw new IllegalStateException("wrong hotspot type: "+hotspotType);
-            }
-                
-          hotspotDetective.detectHotspot();
-          hotspots = hotspotDetective.getDetectedHotspots();
-        } catch (HotspotException ex) {
-            throw new ServletException(ex);
-        }
-        
-        // transform the data to use stable cancer study id
-        Map<String,Map<String, Map<String,Set<String>>>> map =
-                new HashMap<String,Map<String, Map<String,Set<String>>>>(hotspots.size());
-        for (Hotspot hotspot : hotspots) {
-            String label = hotspot.getLabel();
-            Map<String, Map<String,Set<String>>> map1 = new HashMap<String, Map<String,Set<String>>>();
-            for (ExtendedMutation mutation : hotspot.getMutations()) {
-                String cancerStudy = DaoCancerStudy.getCancerStudyByInternalId(
-                        DaoGeneticProfile.getGeneticProfileById(
-                        mutation.getGeneticProfileId()).getCancerStudyId()).getCancerStudyStableId();
-                Map<String,Set<String>> map2 = map1.get(cancerStudy);
-                if (map2==null) {
-                    map2 = new HashMap<String,Set<String>>();
-                    map1.put(cancerStudy, map2);
-                }
-                
-                int sampleId = mutation.getSampleId();
-                String patientId = DaoPatient.getPatientById(DaoSample.getSampleById(sampleId).getInternalPatientId()).getStableId();
-                
-                Set<String> aaChanges = map2.get(patientId);
-                if (aaChanges==null) {
-                    aaChanges = new HashSet<String>();
-                    map2.put(patientId, aaChanges);
-                }
-                aaChanges.add(mutation.getProteinChange());
-            }
-            map.put(label, map1);
-        }
-
         String format = request.getParameter("format");
+        
+        if (format==null || format.equalsIgnoreCase("json")) {
+            response.setContentType("application/json");
+        }
         
         PrintWriter out = response.getWriter();
         try {
-            if (format==null || format.equalsIgnoreCase("json")) {
-                response.setContentType("application/json");
-
-                ObjectMapper mapper = new ObjectMapper();
-                out.write(mapper.writeValueAsString(map));
-            } else if (format.equalsIgnoreCase("text")) {
-                out.write("Alteration\t");
-                out.write(StringUtils.join(studyStableIds,"\t"));
-                out.write("\n");
-                for (Map.Entry<String,Map<String, Map<String,Set<String>>>> entry : map.entrySet()) {
-                    String keyword = entry.getKey();
-                    out.write(keyword);
-                    Map<String, Map<String,Set<String>>> mapStudyCaseMut = entry.getValue();
-                    for (String study : studyStableIds) {
-                        Map<String,Set<String>> mapCaseMut = mapStudyCaseMut.get(study);
-                        out.write("\t");
-                        if (mapCaseMut!=null && !mapCaseMut.isEmpty()) {
-                            out.write(Integer.toString(mapCaseMut.size()));
-                        }
-                    }
-                    out.write("\n");
-                }
-            } else if (format.equalsIgnoreCase("text-dump")) {
-                File file = File.createTempFile("hotspots-",".txt");
-                System.out.println("Save to: "+file.getAbsolutePath());
-                out = new PrintWriter(file);
-                out.write("Alteration\t");
-                out.write(StringUtils.join(studyStableIds,"\t"));
-                out.write("\n");
-                for (Map.Entry<String,Map<String, Map<String,Set<String>>>> entry : map.entrySet()) {
-                    String keyword = entry.getKey();
-                    out.write(keyword);
-                    Map<String, Map<String,Set<String>>> mapStudyCaseMut = entry.getValue();
-                    for (String study : studyStableIds) {
-                        Map<String,Set<String>> mapCaseMut = mapStudyCaseMut.get(study);
-                        out.write("\t");
-                        if (mapCaseMut!=null && !mapCaseMut.isEmpty()) {
-                            out.write(Integer.toString(mapCaseMut.size()));
-                        }
-                    }
-                    out.write("\n");
-                }
-            } 
+            HotspotMain.detectHotspot(getRequestParameterMap(request), out);
+        } catch (HotspotException ex) {
+            throw new ServletException(ex);
         } finally {            
             out.close();
         }
+    }
+    
+    private Map<String, String> getRequestParameterMap(HttpServletRequest request) {
+        Map<String, String[]> map = request.getParameterMap();
+        Map<String, String> ret = new HashMap<String, String>();
+        for (Map.Entry<String,String[]> entry : map.entrySet()) {
+            ret.put(entry.getKey(), entry.getValue()[0]);
+        }
+        return ret;
     }
 
     public HotspotsServlet() {
