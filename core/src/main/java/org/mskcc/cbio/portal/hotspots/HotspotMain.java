@@ -73,7 +73,6 @@ public final class HotspotMain {
     public static final String THRESHOLD_PVALUE = "threshold_pvalue";
     
     public static void main(String[] args) throws IOException, HotspotException  {
-        args = new String[] {"/Users/jgao/projects/MutationHotspot/request-parameters.txt", "/Users/jgao/projects/MutationHotspot/test.txt"};
         String parameterConfigFile = args[0];
         Map<String, String> map = getRequestParameterMap(parameterConfigFile);
         File file;
