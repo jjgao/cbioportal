@@ -173,9 +173,11 @@ public abstract class AbstractHotspotDetective implements HotspotDetective {
                 }
                 
             }
-            System.out.println(""+(++count)+". Processing "+currProtein.getGene().getEntrezGeneId()
-                    +" "+currProtein.getGene().getHugoGeneSymbolAllCaps());
-            recordHotspots(currProtein, mapResidueHotspot);
+            if (!mapResidueHotspot.isEmpty()) {
+                System.out.println(""+(++count)+". Processing "+currProtein.getGene().getEntrezGeneId()
+                        +" "+currProtein.getGene().getHugoGeneSymbolAllCaps());
+                recordHotspots(currProtein, mapResidueHotspot);
+            }
         } catch (SQLException e) {
             throw new HotspotException(e);
         } finally {

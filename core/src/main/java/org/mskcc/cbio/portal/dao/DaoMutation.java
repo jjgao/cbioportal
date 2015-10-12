@@ -42,12 +42,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import org.mskcc.cbio.portal.model.*;
 import org.mskcc.cbio.portal.util.MutationKeywordUtils;
 
@@ -1587,5 +1584,30 @@ public final class DaoMutation {
         } finally {
             JdbcUtil.closeAll(DaoMutation.class, con, pstmt, rs);
         }
+    }
+    
+    public static Set<CanonicalGene> getMutatedGenes() throws DaoException {
+            Connection con = null;
+            PreparedStatement pstmt = null;
+            ResultSet rs = null;
+            DaoGeneOptimized daoGeneOptimized = DaoGeneOptimized.getInstance();
+            Set<CanonicalGene> genes = new HashSet<CanonicalGene>();
+            try {
+                con = JdbcUtil.getDbConnection(DaoMutation.class);
+                pstmt = con.prepareStatement
+                        ("SELECT distinct entrez_gene_id FROM mutation");
+                rs = pstmt.executeQuery();
+                while  (rs.next()) {
+                    long entrezId = rs.getLong("ENTREZ_GENE_ID");
+                    CanonicalGene gene = daoGeneOptimized.getGene(entrezId);
+                    genes.add(gene);
+                }
+            } catch (SQLException e) {
+                throw new DaoException(e);
+            } finally {
+                JdbcUtil.closeAll(DaoMutation.class, con, pstmt, rs);
+            }
+            return genes;
+        
     }
 }

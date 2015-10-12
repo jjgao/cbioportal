@@ -30,13 +30,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.logging.Level;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -44,6 +47,7 @@ import org.mskcc.cbio.portal.dao.DaoCancerStudy;
 import org.mskcc.cbio.portal.dao.DaoException;
 import org.mskcc.cbio.portal.dao.DaoGeneOptimized;
 import org.mskcc.cbio.portal.dao.DaoGeneticProfile;
+import org.mskcc.cbio.portal.dao.DaoMutation;
 import org.mskcc.cbio.portal.dao.DaoPatient;
 import org.mskcc.cbio.portal.dao.DaoSample;
 import org.mskcc.cbio.portal.model.CancerStudy;
@@ -74,21 +78,105 @@ public final class HotspotMain {
     public static final String THRESHOLD_PVALUE = "threshold_pvalue";
     
     public static void main(String[] args) throws IOException, HotspotException  {
+        args = new String[] {"/Users/jgao/projects/MutationHotspot/request-parameters.txt", "/Users/jgao/projects/MutationHotspot/test"};
         String parameterConfigFile = args[0];
         Map<String, String> map = getRequestParameterMap(parameterConfigFile);
-        File file;
-        if (args.length>1) {
-            file = new File(args[1]);
+        File dir = new File(args[1]);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        final String path = dir.getAbsolutePath();
+        System.out.println("Save to: "+path);
+        
+        DaoGeneOptimized.getInstance().getGene("TP53"); // caching the genes
+        
+        List<Map<String, String>> maps = split(map, 500);
+        for (final Map<String, String> m : maps) {
+            Thread thread;
+            thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        process(m, path);
+                    } catch (IOException ex) {
+                        java.util.logging.Logger.getLogger(HotspotMain.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (HotspotException ex) {
+                        java.util.logging.Logger.getLogger(HotspotMain.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            });
+            thread.start();
+        }
+    }
+    
+    private static List<Map<String, String>> split(Map<String, String> map, int genesPerBatch) throws HotspotException {
+        List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
+        List<String> genes = getGenes(map.get(GENES));
+        int n = genes.size();
+        int batches = (int)Math.ceil(1.0 * n / genesPerBatch);
+        int i=0;
+        for (; i<batches; i++) {
+            Map<String, String> newMap = new HashMap<String, String>(map);
+            int s = i*genesPerBatch;
+            int t = (i+1)*genesPerBatch;
+            if (t>n) {
+                t = n;
+            }
+            newMap.put(GENES, StringUtils.join(genes.subList(s, t),","));
+            ret.add(newMap);
+        }
+        return ret;
+    }
+    
+    private static List<String> getGenes(String genesStr) throws HotspotException {
+        List<String> genes;
+        if (genesStr==null || genesStr.isEmpty()) {
+            genes = getMutatedGenes();
         } else {
-            file = File.createTempFile("hotspots-",".txt");
+            genes = Arrays.asList(genesStr.split(","));
         }
-        System.out.println("Save to: "+file.getAbsolutePath());
-        PrintWriter out = new PrintWriter(file);
+        return genes;
+    }
+    
+    private static void process(Map<String, String> map, String path) throws IOException, HotspotException {
+        List<String> genes = getGenes(map.get(GENES));
+        int n = genes.size();
+        for (int i=0; i<n; i++) {
+            System.out.println(""+(i+1)+" / "+n);
+            String gene = genes.get(i);
+            File file = new File(path+File.separator+gene);
+            if (file.exists()) {
+                continue;
+            }
+            
+            map.put(GENES, gene);
+            PrintWriter out = new PrintWriter(file);
+            try {
+                detectHotspot(map, out);
+                out.close();
+            } catch(Exception e) {
+                e.printStackTrace();
+                file.deleteOnExit();
+            }
+        }
+    }
+    
+    private static List<String> getMutatedGenes() throws HotspotException {
+        Set<CanonicalGene> mutatedGenes;
         try {
-            detectHotspot(map, out);
-        } finally {
-            out.close();
+            mutatedGenes = DaoMutation.getMutatedGenes();
+        } catch(DaoException e) {
+            throw new HotspotException(e);
         }
+        
+        List<String> ret = new ArrayList<String>();
+        for (CanonicalGene gene : mutatedGenes) {
+            ret.add(gene.getHugoGeneSymbolAllCaps());
+        }
+        
+        Collections.sort(ret);
+        
+        return ret;
     }
     
     private static Map<String, String> getRequestParameterMap(String parameterConfigFile) throws IOException {
