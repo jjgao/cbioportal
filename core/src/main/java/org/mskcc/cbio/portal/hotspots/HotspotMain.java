@@ -41,6 +41,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.mskcc.cbio.portal.dao.DaoCancerStudy;
+import org.mskcc.cbio.portal.dao.DaoException;
 import org.mskcc.cbio.portal.dao.DaoGeneOptimized;
 import org.mskcc.cbio.portal.dao.DaoGeneticProfile;
 import org.mskcc.cbio.portal.dao.DaoPatient;
@@ -135,7 +136,12 @@ public final class HotspotMain {
         
         Set<Integer> studyIds = new HashSet<Integer>();
         for (String stableId : studyStableIds) {
-            CancerStudy study = DaoCancerStudy.getCancerStudyByStableId(stableId);
+            CancerStudy study = null;
+            try {
+                study = DaoCancerStudy.getCancerStudyByStableId(stableId);
+            } catch (DaoException e) {
+                throw new HotspotException(e);
+            }
             if (study!=null) {
                 studyIds.add(study.getInternalId());
                 cancerStudyIdMapping.put(study.getInternalId(), stableId);
@@ -211,9 +217,14 @@ public final class HotspotMain {
             String label = hotspot.getLabel();
             Map<String, Map<String,Set<String>>> map1 = new HashMap<String, Map<String,Set<String>>>();
             for (ExtendedMutation mutation : hotspot.getMutations()) {
-                String cancerStudy = DaoCancerStudy.getCancerStudyByInternalId(
+                String cancerStudy = null;
+                try {
+                    cancerStudy = DaoCancerStudy.getCancerStudyByInternalId(
                         DaoGeneticProfile.getGeneticProfileById(
                         mutation.getGeneticProfileId()).getCancerStudyId()).getCancerStudyStableId();
+                } catch (DaoException e) {
+                    throw new HotspotException(e);
+                }
                 Map<String,Set<String>> map2 = map1.get(cancerStudy);
                 if (map2==null) {
                     map2 = new HashMap<String,Set<String>>();
