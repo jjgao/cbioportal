@@ -90,7 +90,12 @@ public final class HotspotMain {
         
         DaoGeneOptimized.getInstance().getGene("TP53"); // caching the genes
         
-        List<Map<String, String>> maps = split(map, 500);
+        int genesPerBatch = 500;
+        if (args.length>2) {
+            genesPerBatch = Integer.parseInt(args[2]);
+        }
+        
+        List<Map<String, String>> maps = split(map, genesPerBatch);
         for (final Map<String, String> m : maps) {
             Thread thread;
             thread = new Thread(new Runnable() {
@@ -144,8 +149,8 @@ public final class HotspotMain {
         for (int i=0; i<n; i++) {
             System.out.println(""+(i+1)+" / "+n);
             String gene = genes.get(i);
-            File file = new File(path+File.separator+gene);
-            if (file.exists()) {
+            File file = new File(path+File.separator+gene+".txt");
+            if (file.exists() && file.length()>0) {
                 continue;
             }
             
