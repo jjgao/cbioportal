@@ -87,15 +87,21 @@ public class Hotspot3DImpl extends HotspotImpl implements Hotspot3D {
         }
         
         if (Double.isNaN(pvalue)) {
-            double pMin = 1.0;
+            double pMin = Double.POSITIVE_INFINITY;
             for (Hotspot hotspot : hotspots3D) {
                 double p = hotspot.getPValue();
-                if (p < pMin) {
+                if (!Double.isNaN(p) && p < pMin) {
                     pMin = p;
                 }
             }
+            
+            if (pMin == Double.POSITIVE_INFINITY) {
+                return Double.NaN;
+            }
+            
             return pMin;
         }
+        
         return pvalue;
     }
 }

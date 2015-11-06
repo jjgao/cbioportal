@@ -76,6 +76,7 @@ public final class HotspotMain {
     public static final String SINGLE_HOTSPOT_SEPARATE_BY_PROTEIN_CHANGE = "separate_by_protein_change";
     public static final String THRESHOLD_PREFILTER_RECURRENCE = "threshold_prefilter_recurrence";
     public static final String THRESHOLD_PVALUE = "threshold_pvalue";
+    public static final String CALCULATE_PVALUE = "calculate_pvalue";
     
     public static void main(String[] args) throws IOException, HotspotException  {
         //args = new String[] {"/Users/jgao/projects/MutationHotspot/request-parameters.txt", "/Users/jgao/projects/MutationHotspot/test"};
@@ -205,6 +206,11 @@ public final class HotspotMain {
         int thresholdPrefilterRecurrence = Integer.parseInt(requestMap.get(THRESHOLD_PREFILTER_RECURRENCE));
         String strThresholdPValue = requestMap.get(THRESHOLD_PVALUE);
         double thresholdPValue = strThresholdPValue==null || strThresholdPValue.isEmpty()?1:Double.parseDouble(strThresholdPValue);
+        String calculatePValueStr = requestMap.get(CALCULATE_PVALUE);
+        boolean calculatePValue = false;
+        if (calculatePValueStr!=null) {
+            calculatePValue = Boolean.parseBoolean(calculatePValueStr);
+        }
         String genes = requestMap.get(GENES);
         Set<Long>  entrezGeneIds = new HashSet<Long>();
         Set<Long>  excludeEntrezGeneIds = new HashSet<Long>();
@@ -250,6 +256,7 @@ public final class HotspotMain {
         hotspotDetectiveParameters.setThresholdSamples(threshold);
         hotspotDetectiveParameters.setPrefilterThresholdSamplesOnSingleResidue(thresholdPrefilterRecurrence);
         hotspotDetectiveParameters.setPValueThreshold(thresholdPValue);
+        hotspotDetectiveParameters.setCalculatePValue(calculatePValue);
 
         HotspotDetective hotspotDetective;
         if (hotspotType.equalsIgnoreCase("single")) {

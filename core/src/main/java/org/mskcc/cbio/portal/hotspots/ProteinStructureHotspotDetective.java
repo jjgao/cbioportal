@@ -84,7 +84,11 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                 continue;
             }
             
-            int[][] decoyCountsList = generateDecoys(counts, contactMap.getProteinLeft(), contactMap.getProteinRight()+1, 10000);
+            int[][] decoyCountsList = null;
+            
+            if (parameters.calculatePValue()) {
+                decoyCountsList = generateDecoys(counts, contactMap.getProteinLeft(), contactMap.getProteinRight()+1, 10000);
+            }
             
             System.out.println("\t"+protein3D.getGene().getHugoGeneSymbolAllCaps()+" "+(++i)+"/"+contactMaps.size()+". Processing "
                     +protein3D.getPdbId()+"."+protein3D.getPdbChain());
@@ -115,8 +119,10 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                         mapResiduesHotspots3D.put(residues, hotspots3D);
                     }
                     
-                    double p = getP(contactMap, decoyCountsList, maxCap, hotspot3D.getPatients().size());
-                    hotspot3D.setPValue(p);
+                    if (parameters.calculatePValue()) {
+                        double p = getP(contactMap, decoyCountsList, maxCap, hotspot3D.getPatients().size());
+                        hotspot3D.setPValue(p);
+                    }
                     
                     hotspots3D.add(hotspot3D);
                     

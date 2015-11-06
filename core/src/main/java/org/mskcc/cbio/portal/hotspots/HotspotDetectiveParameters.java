@@ -224,4 +224,8 @@ public interface HotspotDetectiveParameters {
     public double getPValueThreshold();
     
     public void setPValueThreshold(double pValueThreshold);
+    
+    public boolean calculatePValue();
+    
+    public void setCalculatePValue(boolean calculatePValue);
 }

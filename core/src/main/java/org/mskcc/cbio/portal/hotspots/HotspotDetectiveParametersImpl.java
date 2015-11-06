@@ -50,6 +50,7 @@ public class HotspotDetectiveParametersImpl implements HotspotDetectiveParameter
     private int prefilterThresholdSamplesOnSingleResidue;
     private boolean mergeOverlappingHotspots;
     private double pValueThreshold;
+    private boolean calculatePValue;
 
     @Override
     public Collection<Integer> getCancerStudyIds() {
@@ -219,5 +220,15 @@ public class HotspotDetectiveParametersImpl implements HotspotDetectiveParameter
     @Override
     public void setPValueThreshold(double pValueThreshold) {
         this.pValueThreshold = pValueThreshold;
+    }
+
+    @Override
+    public boolean calculatePValue() {
+        return calculatePValue;
+    }
+
+    @Override
+    public void setCalculatePValue(boolean calculatePValue) {
+        this.calculatePValue = calculatePValue;
     }
 }
