@@ -112,8 +112,8 @@ if (isDemoMode!=null) {
     showPlaceHoder = GlobalProperties.showPlaceholderInPatientView();
 }
 
-boolean showPathways = showPlaceHoder & (showMutations | showCNA);
-boolean showSimilarPatient = false;//showPlaceHoder & (showMutations | showCNA);
+boolean showPathways = false;//showPlaceHoder & (showMutations | showCNA);
+boolean showSimilarPatient = showPlaceHoder & (showMutations | showCNA);
 
 boolean hasCnaSegmentData = ((Boolean)request.getAttribute(PatientView.HAS_SEGMENT_DATA));
 boolean hasAlleleFrequencyData = ((Boolean)request.getAttribute(PatientView.HAS_ALLELE_FREQUENCY_DATA));
