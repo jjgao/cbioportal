@@ -159,7 +159,7 @@ public class CancerStudyView extends HttpServlet {
             request.setAttribute(MUTATION_PROFILE, mutProfile);
         }
         
-        GeneticProfile cnaProfile = cancerStudy.getCopyNumberAlterationProfile(true);
+        GeneticProfile cnaProfile = cancerStudy.getCopyNumberAlterationProfile();
         if (cnaProfile!=null) {
             request.setAttribute(CNA_PROFILE, cnaProfile);
         }

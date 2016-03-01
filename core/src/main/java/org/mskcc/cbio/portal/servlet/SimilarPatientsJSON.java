@@ -37,7 +37,7 @@ import java.util.*;
 import javax.servlet.ServletException;
 import javax.servlet.http.*;
 import org.apache.log4j.Logger;
-import org.json.simple.*;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.mskcc.cbio.portal.dao.*;
 import org.mskcc.cbio.portal.model.*;
 
@@ -60,7 +60,7 @@ public class SimilarPatientsJSON extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        JSONArray table = new JSONArray();
+        List table = new ArrayList();
 
         String strMutations = request.getParameter(MUTATION);
         String strCna = request.getParameter(CNA);
@@ -96,8 +96,9 @@ public class SimilarPatientsJSON extends HttpServlet {
         
         PrintWriter out = response.getWriter();
         response.setContentType("application/json");
+        ObjectMapper mapper = new ObjectMapper();
         try {
-            JSONValue.writeJSONString(table, out);
+            out.write(mapper.writeValueAsString(table));
         } finally {            
             out.close();
         }
@@ -116,13 +117,13 @@ public class SimilarPatientsJSON extends HttpServlet {
 //        return ret;
 //    }
     
-    private void export(JSONArray table, Map<Sample, Set<Long>> similarMutations, Map<Sample, Set<Long>> similarCnas) 
+    private void export(List table, Map<Sample, Set<Long>> similarMutations, Map<Sample, Set<Long>> similarCnas) 
             throws DaoException {
         Set<Sample> samples = new HashSet<Sample>();
         samples.addAll(similarMutations.keySet());
         samples.addAll(similarCnas.keySet());
         for (Sample sample : samples) {
-            JSONArray row = new JSONArray();
+            List row = new ArrayList();
             row.add(sample.getStableId());
             
             String[] cancerStudy = {"unknown","unknown"};

@@ -299,7 +299,7 @@ public class PatientView extends HttpServlet {
         String firstSampleId = sampleIds.get(0); 
         Sample firstSample = DaoSample.getSampleByCancerStudyAndSampleId(cancerStudy.getInternalId(), firstSampleId);
         request.setAttribute(HAS_ALLELE_FREQUENCY_DATA, 
-                hasAlleleFrequencyData(firstSample.getInternalId(), cancerStudy.getMutationProfile(firstSampleId)));
+                hasAlleleFrequencyData(firstSample.getInternalId(), cancerStudy.getMutationProfile()));
         
         return true;
     }
@@ -376,7 +376,7 @@ public class PatientView extends HttpServlet {
                     DaoSampleProfile.countSamplesInProfile(mutProfile.getGeneticProfileId()));
         }
         
-        GeneticProfile cnaProfile = cancerStudy.getCopyNumberAlterationProfile(true);
+        GeneticProfile cnaProfile = cancerStudy.getCopyNumberAlterationProfile();
         if (cnaProfile!=null) {
             request.setAttribute(CNA_PROFILE, cnaProfile);
             request.setAttribute(NUM_CASES_IN_SAME_CNA_PROFILE, 

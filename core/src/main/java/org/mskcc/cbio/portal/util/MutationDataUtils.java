@@ -152,7 +152,7 @@ public class MutationDataUtils {
         
         DaoGeneOptimized daoGeneOptimized = DaoGeneOptimized.getInstance();
         
-        GeneticProfile cnaProfile = DaoCancerStudy.getCancerStudyByInternalId(geneticProfile.getCancerStudyId()).getCopyNumberAlterationProfile(true);
+        GeneticProfile cnaProfile = DaoCancerStudy.getCancerStudyByInternalId(geneticProfile.getCancerStudyId()).getCopyNumberAlterationProfile();
         Map<String,Map<Integer,String>> cnaDataMap = new HashMap<String,Map<Integer,String>>();
         if (cnaProfile!=null) {
             for (String geneSymbol : targetGeneList) {

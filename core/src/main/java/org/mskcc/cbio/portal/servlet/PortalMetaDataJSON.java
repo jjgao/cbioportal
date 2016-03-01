@@ -130,7 +130,7 @@ public class PortalMetaDataJSON extends HttpServlet {
             ret.put("pmid", cancerStudy.getPmid());
             ret.put("genomic_profiles", jsonGenomicProfileList);
             ret.put("case_sets", jsonCaseList);
-            ret.put("has_mutation_data", cancerStudy.hasMutationData(geneticProfiles));
+            ret.put("has_mutation_data", cancerStudy.hasMutationData());
             ret.put("has_cna_data", cancerStudy.hasCnaData());
             ret.put("has_mutsig_data", cancerStudy.hasMutSigData());
             ret.put("has_gistic_data", cancerStudy.hasGisticData());

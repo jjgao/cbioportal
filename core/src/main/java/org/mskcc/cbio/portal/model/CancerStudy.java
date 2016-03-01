@@ -32,10 +32,10 @@
 
 package org.mskcc.cbio.portal.model;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.mskcc.cbio.portal.dao.*;
 import org.mskcc.cbio.portal.util.*;
@@ -65,6 +65,11 @@ public class CancerStudy {
     private Set<String> groups;
     private String shortName;
     
+    private List<GeneticProfile> geneticProfiles;
+    private GeneticProfile mutationProfile;
+    private GeneticProfile cnaProfile;
+    private GeneticProfile mrnaZscoresProfile;
+    
 
     /**
      * Constructor.
@@ -84,6 +89,11 @@ public class CancerStudy {
         this.cancerStudyIdentifier = cancerStudyIdentifier;
         this.typeOfCancerId = typeOfCancerId;
         this.publicStudy = publicStudy;
+        try {
+            setGeneticProfiles();
+        } catch (DaoException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     /**
@@ -189,62 +199,52 @@ public class CancerStudy {
     public void setCitation(String citation) {
         this.citation = citation;
     }
+    
+    private void setGeneticProfiles() throws DaoException {
+        geneticProfiles = GetGeneticProfiles.getGeneticProfiles(getCancerStudyStableId());
+        for(GeneticProfile geneticProfile: geneticProfiles) {
+            if(geneticProfile.getGeneticAlterationType().equals(GeneticAlterationType.MUTATION_EXTENDED)) {
+                mutationProfile = geneticProfile;
+                break;
+            }
+            
+            if(geneticProfile.getGeneticAlterationType().equals(GeneticAlterationType.COPY_NUMBER_ALTERATION)) {
+                cnaProfile = geneticProfile;
+                break;
+            }
+            
+            if(geneticProfile.getGeneticAlterationType().equals(GeneticAlterationType.MRNA_EXPRESSION)) {
+                String stableId = geneticProfile.getStableId().toLowerCase();
+                if (stableId.matches(".+rna_seq.*_zscores")) {
+                    mrnaZscoresProfile = geneticProfile;
+                    break; 
+                } else if (stableId.endsWith("_zscores")) {
+                    mrnaZscoresProfile = geneticProfile;
+                }
+            }
+        }
+    }
 
     /**
      * Gets the genetic profiles.
      * @return genetic profiles
      * @throws DaoException database read error
      */
-    public ArrayList<GeneticProfile> getGeneticProfiles() throws DaoException {
-        return GetGeneticProfiles.getGeneticProfiles(getCancerStudyStableId());
-    }
-
-    /* TODO: Add a tag to cancer study in order to get rid of redundant code execution.
-        During the talk it was decided not to use an additional tag for each cancer
-        study, so we need a rather ugly solution. This won't be hurting us much for now
-        but could result in performance issues if the portal ever gets heavy load traffic.
-     */
-    /**
-     * Get mutation profile if any; otherwise, return null.
-     *
-     * @return mutation profile if there is mutation data; otherwise, null.
-     * @param geneticProfiles genetic profiles to search mutations on
-     */
-    public GeneticProfile getMutationProfile(ArrayList<GeneticProfile> geneticProfiles,
-            String caseId) throws DaoException {
-        for(GeneticProfile geneticProfile: geneticProfiles) {
-            if(geneticProfile.getGeneticAlterationType().equals(GeneticAlterationType.MUTATION_EXTENDED) &&
-               acceptableCaseId(caseId, geneticProfile)) {
-                return geneticProfile;
-            }
-        }
-
-        return null;
-    }
-
-    private boolean acceptableCaseId(String caseId, GeneticProfile geneticProfile) throws DaoException {
-        if (caseId == null) return true;
-        Sample sample = DaoSample.getSampleByCancerStudyAndSampleId(geneticProfile.getCancerStudyId(),
-                                                                    StableIdUtil.getSampleId(caseId));
-        return DaoSampleProfile.sampleExistsInGeneticProfile(sample.getInternalId(), geneticProfile.getGeneticProfileId());
-    }
-    
-    public GeneticProfile getMutationProfile(String caseId) throws DaoException {
-        return getMutationProfile(getGeneticProfiles(),caseId);
+    public List<GeneticProfile> getGeneticProfiles() throws DaoException {
+        return geneticProfiles;
     }
     
     public GeneticProfile getMutationProfile() throws DaoException {
-        return getMutationProfile(null);
+        return mutationProfile;
     }
     
     /**
      * Checks if there is any mutation data associated with this cancer study.
      *
      * @return true if there is mutation data
-     * @param geneticProfiles genetic profiles to search mutations on
      */
-    public boolean hasMutationData(ArrayList<GeneticProfile> geneticProfiles) throws DaoException {
-        return null != getMutationProfile(geneticProfiles,null);
+    public boolean hasMutationData() throws DaoException {
+        return mutationProfile != null;
     }
     
     /**
@@ -254,34 +254,13 @@ public class CancerStudy {
      *         showInAnalysisOnly is true, return cn profile shown in analysis tab only.
      * @param geneticProfiles genetic profiles to search cna on
      */
-    public GeneticProfile getCopyNumberAlterationProfile(boolean showInAnalysisOnly)
+    public GeneticProfile getCopyNumberAlterationProfile()
             throws DaoException {
-        return getCopyNumberAlterationProfile(null,showInAnalysisOnly);
+        return cnaProfile;
     }
 
     public boolean hasCnaData() throws DaoException {
-        GeneticProfile copyNumberAlterationProfile = getCopyNumberAlterationProfile(true);
-        return copyNumberAlterationProfile != null;
-    }
-
-    /**
-     * Get copy number alteration profile if any; otherwise, return null.
-     *
-     * @return cn profile if there is cna data; otherwise, null. If 
-     *         showInAnalysisOnly is true, return cn profile shown in analysis tab only.
-     * @param geneticProfiles genetic profiles to search cna on
-     */
-    public GeneticProfile getCopyNumberAlterationProfile(String caseId, boolean showInAnalysisOnly)
-            throws DaoException {
-        for(GeneticProfile geneticProfile: getGeneticProfiles()) {
-            if(geneticProfile.getGeneticAlterationType().equals(GeneticAlterationType.COPY_NUMBER_ALTERATION) &&
-               (!showInAnalysisOnly || geneticProfile.showProfileInAnalysisTab()) &&
-               acceptableCaseId(caseId, geneticProfile)) {
-                return geneticProfile;
-            }
-        }
-
-        return null;
+        return cnaProfile != null;
     }
     
     /**
@@ -292,49 +271,11 @@ public class CancerStudy {
      */
     public GeneticProfile getMRnaZscoresProfile()
             throws DaoException {
-        return getMRnaZscoresProfile(null);
+        return mrnaZscoresProfile;
     }
 
     public boolean hasMRnaData() throws DaoException {
-        GeneticProfile mrnaProfile = getMRnaZscoresProfile();
-        return mrnaProfile != null;
-    }
-
-    /**
-     * Get mRNA Zscores profile. try to get a RNA-seq first then microarray.
-     *
-     * @return mrna profile if there is mrna data; otherwise, null.
-     * @param geneticProfiles genetic profiles to search mrna on
-     */
-    public GeneticProfile getMRnaZscoresProfile(String caseId)
-            throws DaoException {
-        GeneticProfile ret = null;
-        for(GeneticProfile geneticProfile: getGeneticProfiles()) {
-            if(geneticProfile.getGeneticAlterationType().equals(GeneticAlterationType.MRNA_EXPRESSION) &&
-               acceptableCaseId(caseId, geneticProfile)) {
-                String stableId = geneticProfile.getStableId().toLowerCase();
-                if (stableId.matches(".+rna_seq.*_zscores")) {
-                    return geneticProfile;
-                } else if (stableId.endsWith("_zscores")) {
-                    ret = geneticProfile;
-                }
-            }
-        }
-
-        return ret;
-    }
-
-    /**
-     * Similar to:
-     * @see #hasMutationData(java.util.ArrayList)
-     * but this method grabs all the genetic profiles associated to the cancer study
-     * Utilizes @link #getGeneticProfiles()
-     *
-     * @return true if there is mutation data
-     * @throws DaoException database read error
-     */
-    public boolean hasMutationData() throws DaoException {
-        return hasMutationData(getGeneticProfiles());
+        return mrnaZscoresProfile != null;
     }
     
     /**
