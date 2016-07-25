@@ -42,7 +42,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+
 import java.util.Set;
 
 /**
@@ -79,6 +82,37 @@ public final class DaoUniProtIdMapping {
                 uniProtAccs.add(resultSet.getString(1));
             }
             return uniProtAccs;
+        }
+        catch (SQLException e) {
+            throw new DaoException(e);
+        }
+        finally {
+            JdbcUtil.closeAll(DaoUniProtIdMapping.class, connection, preparedStatement, resultSet);
+        }
+    }
+    
+    public static Map<Long,Set<String>> getAllMapping() throws DaoException {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+        try {
+            connection = JdbcUtil.getDbConnection(DaoUniProtIdMapping.class);
+            preparedStatement = connection.prepareStatement(
+                    "select * from uniprot_id_mapping");
+            resultSet = preparedStatement.executeQuery();
+            
+            Map<Long,Set<String>> map = new HashMap<Long,Set<String>>();
+            
+            while (resultSet.next()) {
+                long entrez = resultSet.getLong("entrez_gene_id");
+                Set<String> uniprots = map.get(entrez);
+                if (uniprots==null) {
+                    uniprots = new HashSet<String>();
+                    map.put(entrez, uniprots);
+                }
+                uniprots.add(resultSet.getString("uniprot_id"));
+            }
+            return map;
         }
         catch (SQLException e) {
             throw new DaoException(e);

@@ -729,3 +729,40 @@ CREATE TABLE `info` (
 );
 -- THIS MUST BE KEPT IN SYNC WITH db.version PROPERTY IN pom.xml
 INSERT INTO info VALUES ('1.2.1');
+
+drop table if EXISTS protein_contact_map;
+CREATE TABLE `protein_contact_map` (
+  `PDB_ID` char(4) NOT NULL,
+  `CHAIN` char(1) NOT NULL,
+  `RESIDUE1` int(11) NOT NULL,
+  `ATOM1` varchar(10) DEFAULT NULL,
+  `RESIDUE2` int(11) NOT NULL,
+  `ATOM2` varchar(10) DEFAULT NULL,
+  `DISTANCE_CLOSEST_ATOMS` float DEFAULT NULL,
+  `DISTANCE_C_ALPHA` float DEFAULT NULL,
+  `DISTANCE_ERROR` float DEFAULT NULL, # DISTANCE - Covalent bond length
+  PRIMARY KEY (`PDB_ID`,`CHAIN`,`RESIDUE1`,`RESIDUE2`),
+  KEY (`PDB_ID`,`CHAIN`)
+);
+
+drop table if EXISTS pdb_ptm_data;
+CREATE TABLE `pdb_ptm_data` (
+  `PDB_ID` char(4) NOT NULL,
+  `CHAIN` char(1) NOT NULL,
+  `PTM` varchar(200) NOT NULL,
+  `RESIDUES` varchar(200) NOT NULL,
+  KEY (`PDB_ID`, `CHAIN`)
+);
+
+drop table IF EXISTS ptm_annotation;
+CREATE TABLE `ptm_annotation` (
+  `PTM_ANNOTATION_ID` int(255) NOT NULL auto_increment,
+  `UNIPROT_ID` varchar(255) NOT NULL,
+  `SYMBOL` varchar(255) NOT NULL,
+  `RESIDUE` int(5) NOT NULL,
+  `TYPE` varchar(20) NOT NULL COMMENT 'e.g. phosphorylation, acelytation, ubiquitination',
+  `ENZYME` varchar(512) DEFAULT NULL,
+  `NOTE` text DEFAULT NULL,
+  PRIMARY KEY (`PTM_ANNOTATION_ID`),
+  UNIQUE (`UNIPROT_ID`,`RESIDUE`,`TYPE`)
+);

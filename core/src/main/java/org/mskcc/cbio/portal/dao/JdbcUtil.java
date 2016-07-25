@@ -32,7 +32,6 @@
 
 package org.mskcc.cbio.portal.dao;
 
-import org.mskcc.cbio.portal.util.*;
 
 import org.apache.commons.logging.*;
 
@@ -40,6 +39,9 @@ import java.sql.*;
 import java.util.*;
 import javax.sql.DataSource;
 import org.apache.commons.dbcp.BasicDataSource;
+import org.mskcc.cbio.portal.util.DatabaseProperties;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
  * Connection Utility for JDBC.
@@ -79,7 +81,7 @@ public class JdbcUtil {
         String url ="jdbc:mysql://" + host + "/" + database +
                         "?user=" + userName + "&password=" + password +
                         "&zeroDateTimeBehavior=convertToNull";
-        
+
         //  Set up poolable data source
         BasicDataSource ds = new BasicDataSource();
         ds.setDriverClassName("com.mysql.jdbc.Driver");

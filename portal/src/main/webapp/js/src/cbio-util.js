@@ -129,6 +129,41 @@ cbio.util = (function() {
         xLabels.attr("y", xy + shiftValueOnX);
         yLabels.attr("y", yy + shiftValueOnY);
     };
+    
+    var size = function(obj) {
+        var n = 0, key;
+        for (key in obj) {
+            if (obj.hasOwnProperty(key)) n++;
+        }
+        return n;
+    };
+
+    /**
+     * Determines the longest common starting substring
+     * for the given two strings
+     *
+     * @param str1  first string
+     * @param str2  second string
+     * @return {String} longest common starting substring
+     */
+    var lcss = function (str1, str2)
+    {
+            var i = 0;
+
+            while (i < str1.length && i < str2.length)
+            {
+                    if (str1[i] === str2[i])
+                    {
+                            i++;
+                    }
+                    else
+                    {
+                            break;
+                    }
+            }
+
+            return str1.substring(0, i);
+    };
 
     /**
      * Determines the longest common starting substring
@@ -589,15 +624,16 @@ cbio.util = (function() {
         arrayToAssociatedArrayIndices: arrayToAssociatedArrayIndices,
         alterAxesAttrForPDFConverter: alterAxesAttrForPDFConverter,
         lcss: lcss,
-	    b64ToByteArrays: b64ToByteArrays,
+        size: size,
         browser: detectBrowser(), // returning the browser object, not the function itself
         getWindowOrigin: getOrigin,
-        sortByAttribute: sortByAttribute,
         safeProperty: safeProperty,
         autoHideOnMouseLeave: autoHideOnMouseLeave,
+        b64ToByteArrays: b64ToByteArrays,
+        sortByAttribute: sortByAttribute,
         swapElement: swapElement,
-	    getTargetWindow: getTargetWindow,
-	    getTargetDocument: getTargetDocument,
+        getTargetWindow: getTargetWindow,
+        getTargetDocument: getTargetDocument,
         getLinkToPatientView: getLinkToPatientView,
         getLinkToSampleView: getLinkToSampleView,
         addTargetedQTip: addTargetedQTip,
