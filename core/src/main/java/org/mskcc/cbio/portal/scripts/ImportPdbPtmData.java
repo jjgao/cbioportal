@@ -47,17 +47,15 @@ import org.mskcc.cbio.portal.util.ProgressMonitor;
  */
 public class ImportPdbPtmData {
     
-    public static void importData(File file, ProgressMonitor pMonitor) throws IOException, DaoException {
+    public static void importData(File file) throws IOException, DaoException {
         Pattern patternRes = Pattern.compile("[A-Z]{3}:(-?[0-9]+)");
         MySQLbulkLoader.bulkLoadOn();
         FileReader reader = new FileReader(file);
         BufferedReader buf = new BufferedReader(reader);
         String line;
         while ((line = buf.readLine()) != null) {
-            if (pMonitor != null) {
-                pMonitor.incrementCurValue();
-                ConsoleUtil.showProgress(pMonitor);
-            }
+            ProgressMonitor.incrementCurValue();
+            ConsoleUtil.showProgress();
             if (!line.startsWith("#")) {
                 String parts[] = line.split("\t",-1);
                 
@@ -97,16 +95,15 @@ public class ImportPdbPtmData {
             System.exit(1);
         }
         DaoPdbPtmData.deleteAllRecords();
-        ProgressMonitor pMonitor = new ProgressMonitor();
-        pMonitor.setConsoleMode(true);
+        ProgressMonitor.setConsoleMode(true);
 
         File file = new File(args[0]);
         System.out.println("Reading data from:  " + file.getAbsolutePath());
         int numLines = FileUtil.getNumLines(file);
         System.out.println(" --> total number of lines:  " + numLines);
-        pMonitor.setMaxValue(numLines);
-        importData(file, pMonitor);
-        ConsoleUtil.showWarnings(pMonitor);
+        ProgressMonitor.setMaxValue(numLines);
+        importData(file);
+        ConsoleUtil.showWarnings();
         System.err.println("Done.");
     }
 }

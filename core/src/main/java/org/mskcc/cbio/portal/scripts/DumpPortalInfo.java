@@ -111,27 +111,21 @@ public class DumpPortalInfo extends ConsoleRunnable {
                         outputDir.getPath() + "'");
             }
 
-            try {
-                writeJsonFile(
-                        apiService.getCancerTypes(),
-                        nameJsonFile(outputDir, API_CANCER_TYPES));
-                writeJsonFile(
-                        apiService.getSampleClinicalAttributes(),
-                        nameJsonFile(outputDir, API_SAMPLE_ATTRS));
-                writeJsonFile(
-                        apiService.getPatientClinicalAttributes(),
-                        nameJsonFile(outputDir, API_PATIENT_ATTRS));
-                writeJsonFile(
-                        apiService.getGenes(),
-                        nameJsonFile(outputDir, API_GENES));
-                writeJsonFile(
-                        apiService.getGenesAliases(),
-                        nameJsonFile(outputDir, API_GENE_ALIASES));
-            } catch (IOException e) {
-                throw new IOException(
-                        "Error writing portal info file: " + e.toString(),
-                        e);
-            }
+            writeJsonFile(
+                    apiService.getCancerTypes(),
+                    nameJsonFile(outputDir, API_CANCER_TYPES));
+            writeJsonFile(
+                    apiService.getSampleClinicalAttributes(),
+                    nameJsonFile(outputDir, API_SAMPLE_ATTRS));
+            writeJsonFile(
+                    apiService.getPatientClinicalAttributes(),
+                    nameJsonFile(outputDir, API_PATIENT_ATTRS));
+            writeJsonFile(
+                    apiService.getGenes(),
+                    nameJsonFile(outputDir, API_GENES));
+            writeJsonFile(
+                    apiService.getGenesAliases(),
+                    nameJsonFile(outputDir, API_GENE_ALIASES));
         }
         catch (RuntimeException e) {
             throw e;

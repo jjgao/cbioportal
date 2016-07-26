@@ -45,11 +45,6 @@ import org.mskcc.cbio.portal.util.ProgressMonitor;
  * Command Line Tool to Import public PTM annotation data.
  */
 public class ImportPtmAnnotation {
-    private ProgressMonitor pMonitor;
-
-    public ImportPtmAnnotation(ProgressMonitor pMonitor) {
-        this.pMonitor = pMonitor;
-    }
 
     public void importPhosphoSitePlusReport(File ptmFile) throws IOException, DaoException {
         MySQLbulkLoader.bulkLoadOn();
@@ -61,10 +56,8 @@ public class ImportPtmAnnotation {
         }
         
         while ((line = buf.readLine()) !=null) {
-            if (pMonitor != null) {
-                pMonitor.incrementCurValue();
-                ConsoleUtil.showProgress(pMonitor);
-            }
+            ProgressMonitor.incrementCurValue();
+            ConsoleUtil.showProgress();
             
             String parts[] = line.split("\t");
             if (!parts[7].equalsIgnoreCase("human")) {
@@ -91,10 +84,8 @@ public class ImportPtmAnnotation {
         }
         
         while ((line = buf.readLine()) !=null) {
-            if (pMonitor != null) {
-                pMonitor.incrementCurValue();
-                ConsoleUtil.showProgress(pMonitor);
-            }
+            ProgressMonitor.incrementCurValue();
+            ConsoleUtil.showProgress();
             
             String parts[] = line.split("\t");
             if (parts.length<9 || !parts[6].equalsIgnoreCase("human")) {
@@ -138,10 +129,8 @@ public class ImportPtmAnnotation {
         }
         
         while ((line = buf.readLine()) !=null) {
-            if (pMonitor != null) {
-                pMonitor.incrementCurValue();
-                ConsoleUtil.showProgress(pMonitor);
-            }
+            ProgressMonitor.incrementCurValue();
+            ConsoleUtil.showProgress();
             
             String parts[] = line.split("\t");
             if (parts.length<11 || !parts[8].equalsIgnoreCase("human")) {
@@ -188,10 +177,8 @@ public class ImportPtmAnnotation {
         }
         
         while ((line = buf.readLine()) !=null) {
-            if (pMonitor != null) {
-                pMonitor.incrementCurValue();
-                ConsoleUtil.showProgress(pMonitor);
-            }
+            ProgressMonitor.incrementCurValue();
+            ConsoleUtil.showProgress();
             
             String parts[] = line.split("\t");
             if (!parts[10].equalsIgnoreCase("human")) {
@@ -215,16 +202,16 @@ public class ImportPtmAnnotation {
             System.out.println("command line usage:  importPtmAnnotation.pl <ptm_file> <type>");
             System.exit(1);
         }
-        ProgressMonitor pMonitor = new ProgressMonitor();
-        pMonitor.setConsoleMode(true);
+        
+        ProgressMonitor.setConsoleMode(true);
 
         File ptmFile = new File(args[0]);
         System.out.println("Reading data from:  " + ptmFile.getAbsolutePath());
         int numLines = FileUtil.getNumLines(ptmFile);
         System.out.println(" --> total number of lines:  " + numLines);
-        pMonitor.setMaxValue(numLines);
+        ProgressMonitor.setMaxValue(numLines);
         
-        ImportPtmAnnotation parser = new ImportPtmAnnotation(pMonitor);
+        ImportPtmAnnotation parser = new ImportPtmAnnotation();
         if (args[1].equalsIgnoreCase("phosphositeplus")) {
             parser.importPhosphoSitePlusReport(ptmFile);
         } else if (args[1].equalsIgnoreCase("phosphositeplus-kinase")) {
@@ -235,7 +222,7 @@ public class ImportPtmAnnotation {
             parser.importPhosphoSitePlusDiseaseReport(ptmFile);
         }
         
-        ConsoleUtil.showWarnings(pMonitor);
+        ConsoleUtil.showWarnings();
         System.err.println("Done.");
     }
 }

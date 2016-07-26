@@ -45,17 +45,16 @@ import org.mskcc.cbio.portal.util.ProgressMonitor;
  */
 public class ImportProteinContactMap {
     
-    public static void importData(File file, double closestAtomCutoff, double calphaCutoff, ProgressMonitor pMonitor) throws IOException, DaoException {
+    public static void importData(File file, double closestAtomCutoff, double calphaCutoff) throws IOException, DaoException {
         Pattern patternRes = Pattern.compile("[A-Z]{3}:(-?[0-9]+)");
         MySQLbulkLoader.bulkLoadOn();
         FileReader reader = new FileReader(file);
         BufferedReader buf = new BufferedReader(reader);
         String line;
         while ((line = buf.readLine()) != null) {
-            if (pMonitor != null) {
-                pMonitor.incrementCurValue();
-                ConsoleUtil.showProgress(pMonitor);
-            }
+            ProgressMonitor.incrementCurValue();
+            ConsoleUtil.showProgress();
+
             if (!line.startsWith("#")) {
                 String parts[] = line.split("\t");
                 
@@ -106,8 +105,7 @@ public class ImportProteinContactMap {
             System.exit(1);
         }
         DaoProteinContactMap.deleteAllRecords();
-        ProgressMonitor pMonitor = new ProgressMonitor();
-        pMonitor.setConsoleMode(true);
+        ProgressMonitor.setConsoleMode(true);
 
         File file = new File(args[0]);
         double closestAtomCutoff = Double.parseDouble(args[1]);
@@ -115,9 +113,9 @@ public class ImportProteinContactMap {
         System.out.println("Reading data from:  " + file.getAbsolutePath());
         int numLines = FileUtil.getNumLines(file);
         System.out.println(" --> total number of lines:  " + numLines);
-        pMonitor.setMaxValue(numLines);
-        importData(file, closestAtomCutoff, calphaCutoff, pMonitor);
-        ConsoleUtil.showWarnings(pMonitor);
+        ProgressMonitor.setMaxValue(numLines);
+        importData(file, closestAtomCutoff, calphaCutoff);
+        ConsoleUtil.showWarnings();
         System.err.println("Done.");
     }
 }
