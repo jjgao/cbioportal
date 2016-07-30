@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import org.mskcc.cbio.portal.dao.DaoException;
 import org.mskcc.cbio.portal.dao.DaoPdbPtmData;
 import org.mskcc.cbio.portal.dao.DaoPdbUniprotResidueMapping;
@@ -121,7 +122,7 @@ public class PTM3DHotspotDetective extends ProteinStructureHotspotDetective {
                     continue;
                 }
                 
-                Map<SortedSet<Integer>,String> pdbPtms = getPdbPtm(protein3D, pdbUniprotResidueMapping.getKeySet());
+                Map<SortedSet<Integer>,String> pdbPtms = getPdbPtm(protein3D, pdbUniprotResidueMapping);
                 
                 ptms.put(protein3D, pdbPtms);
             }
@@ -132,8 +133,23 @@ public class PTM3DHotspotDetective extends ProteinStructureHotspotDetective {
         }
     }
     
-    protected Map<SortedSet<Integer>, String> getPdbPtm(MutatedProtein3D protein3D, Set<Integer> residues) throws DaoException {
-        return DaoPdbPtmData.getPdbPtmModules(protein3D.getPdbId(), protein3D.getPdbChain(), residues);
+    protected Map<SortedSet<Integer>, String> getPdbPtm(MutatedProtein3D protein3D, OneToOneMap<Integer, Integer> pdbUniprotResidueMapping) throws DaoException {
+        Set<Integer> pdbResiduesAllMapped = pdbUniprotResidueMapping.getKeySet();
+        Map<SortedSet<Integer>, String> pdbMap = DaoPdbPtmData.getPdbPtmModules(protein3D.getPdbId(), protein3D.getPdbChain(), pdbResiduesAllMapped);
+        Map<SortedSet<Integer>, String> uniprotMap = new HashMap<SortedSet<Integer>,String>();
+        for (Map.Entry<SortedSet<Integer>, String> entry : pdbMap.entrySet()) {
+            SortedSet<Integer> pdbResidues = entry.getKey();
+            String ptm = entry.getValue();
+            SortedSet<Integer> uniprotResidues = new TreeSet<Integer>();
+            for (Integer pr : pdbResidues) {
+                Integer ur = pdbUniprotResidueMapping.getByKey(pr);
+                if (ur != null) { // it is possible that some of the pdb residues are not aligned
+                    uniprotResidues.add(ur);
+                }
+            }
+            uniprotMap.put(uniprotResidues, ptm);
+        }
+        return uniprotMap;
     }
     
     private OneToOneMap<Integer, Integer> getPdbUniprotResidueMapping(List<PdbUniprotAlignment> alignments) throws HotspotException {
