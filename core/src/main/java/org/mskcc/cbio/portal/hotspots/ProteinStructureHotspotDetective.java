@@ -85,9 +85,11 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
             }
             
             int[][] decoyCountsList = null;
+            DetectedInDecoy detectedInDecoy = null;
             
             if (parameters.calculatePValue()) {
                 decoyCountsList = generateDecoys(counts, contactMap.getProteinLeft(), contactMap.getProteinRight()+1, 10000);
+                detectedInDecoy = new StructureHotspotDetectedInDecoy(contactMap);
             }
             
             System.out.println("\t"+protein3D.getGene().getHugoGeneSymbolAllCaps()+" "+(++i)+"/"+contactMaps.size()+". Processing "
@@ -120,7 +122,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                     }
                     
                     if (parameters.calculatePValue()) {
-                        double p = getP(contactMap, decoyCountsList, maxCap, hotspot3D.getPatients().size());
+                        double p = getP(detectedInDecoy, decoyCountsList, maxCap, hotspot3D.getPatients().size());
                         hotspot3D.setPValue(p);
                     }
                     
@@ -178,7 +180,40 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         a[change] = helper;
     }
     
-    private double getP(final ContactMap contactMap, int[][] decoyCountsList, final int maxCap, final int targetCount) {
+    static interface DetectedInDecoy {
+        boolean isDetectedInDecoy(final int[] decoy, final int maxCap, final int targetCount);
+    }
+    
+    private static class StructureHotspotDetectedInDecoy implements DetectedInDecoy {
+        private final ContactMap contactMap;
+        StructureHotspotDetectedInDecoy(final ContactMap contactMap) {
+            this.contactMap = contactMap;
+        }
+        public boolean isDetectedInDecoy(final int[] decoy, final int maxCap, final int targetCount) {
+            boolean[][] graph = contactMap.getContact();
+            int l = contactMap.getProteinLeft();
+            int r = contactMap.getProteinRight();
+            for (int i=l; i<r; i++) {
+                int count = 0;
+                for (int j=l; j<r; j++) {
+                    if (graph[i][j]) {
+                        int c = decoy[j];
+                        if (c > maxCap) {
+                            c = maxCap;
+                        }
+                        count += c;
+                        if (count >= targetCount) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+    }
+    
+    private double getP(final DetectedInDecoy detectedInDecoy, int[][] decoyCountsList, final int maxCap, final int targetCount) {
         final AtomicInteger d = new AtomicInteger(0);
         
         int nDecoy = decoyCountsList.length;
@@ -191,7 +226,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                 @Override
                 public void run() {
                     for (int[] decoy : decoys) {
-                        if (isDetectedInDecoy(contactMap, decoy, maxCap, targetCount)) {
+                        if (detectedInDecoy.isDetectedInDecoy(decoy, maxCap, targetCount)) {
                             d.incrementAndGet();
                         }
                     }
@@ -210,29 +245,6 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         
         
         return 1.0 * d.get() / decoyCountsList.length;
-    }
-    
-    private boolean isDetectedInDecoy(ContactMap contactMap, int[] decoyCounts, int maxCap, int targetCount) {
-        boolean[][] graph = contactMap.getContact();
-        int l = contactMap.getProteinLeft();
-        int r = contactMap.getProteinRight();
-        for (int i=l; i<r; i++) {
-            int count = 0;
-            for (int j=l; j<r; j++) {
-                if (graph[i][j]) {
-                    int c = decoyCounts[j];
-                    if (c > maxCap) {
-                        c = maxCap;
-                    }
-                    count += c;
-                    if (count >= targetCount) {
-                        return true;
-                    }
-                }
-            }
-        }
-        
-        return false;
     }
     
     private Set<SortedSet<Integer>> findConnectedNeighbors(boolean[][] graph, Set<Integer> nodes) {

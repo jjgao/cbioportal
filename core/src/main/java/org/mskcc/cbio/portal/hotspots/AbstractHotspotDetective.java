@@ -183,6 +183,7 @@ public abstract class AbstractHotspotDetective implements HotspotDetective {
         } finally {
             JdbcUtil.closeAll(AbstractHotspotDetective.class, con, pstmt, rs);
         }
+        System.out.println("Done!");
     }
     
     private void removeNonrecurrentHotspots(Map<Integer, Hotspot> mapResidueHotspot) {
