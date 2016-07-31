@@ -59,19 +59,47 @@ public class PTM3DHotspotDetective extends ProteinStructureHotspotDetective {
     @Override
     protected Map<MutatedProtein,Set<Hotspot>> processSingleHotspotsOnAProtein(MutatedProtein protein,
             Map<Integer, Hotspot> mapResidueHotspot) throws HotspotException {
+        if (protein.getProteinLength()>5000) {
+            System.out.println("Protein longer than 5000, skipping..");
+            return Collections.emptyMap();
+        }
         Map<SortedSet<Integer>,Set<Hotspot>> mapResiduesHotspots3D = new HashMap<SortedSet<Integer>,Set<Hotspot>>();
+        Map<MutatedProtein3D,List<PdbUniprotAlignment>> mapAlignments = getPdbUniprotAlignments(protein);
+        Map<MutatedProtein3D,int[]> alignedRanges = getAlignedRanges(mapAlignments);
+        Map<MutatedProtein3D,Map<SortedSet<Integer>,String>> pdbPtms = get3DPTMs(mapAlignments, mapResidueHotspot.keySet());
         
-        Map<MutatedProtein3D,Map<SortedSet<Integer>,String>> pdbPtms = get3DPTMs(protein, mapResidueHotspot.keySet());
+        int largestPos = getLargestAlgnedPosition(alignedRanges);
+        if (largestPos > protein.getProteinLength()) {
+            protein.setProteinLength(largestPos);
+        }
+        
+        int[] counts = getMutationCountsOnProtein(mapResidueHotspot, protein.getProteinLength());
+        
         for (Map.Entry<MutatedProtein3D,Map<SortedSet<Integer>,String>> entryPdbPtm : pdbPtms.entrySet()) {
             MutatedProtein3D protein3D = entryPdbPtm.getKey();
+            
+            int[][] decoyCountsList = null;
+            if (parameters.calculatePValue()) {
+                int[] range = alignedRanges.get(protein3D);
+                decoyCountsList = generateDecoys(counts, range[0], range[1]+1, 10000);
+            }
+            
             Map<SortedSet<Integer>,String> ptmMap = entryPdbPtm.getValue();
             for (Map.Entry<SortedSet<Integer>,String> entryPtm : ptmMap.entrySet()) {
                 SortedSet<Integer> residues = entryPtm.getKey();
                 String ptmLabel = entryPtm.getValue();
                 HotspotImpl hotspot3D = new HotspotImpl(protein3D, numberOfsequencedCases, residues);
                 hotspot3D.setLabel(ptmLabel);
+                
+                int maxCap = 0;
                 for (int residue : residues) {
-                    hotspot3D.mergeHotspot(mapResidueHotspot.get(residue));
+                    Hotspot hotspot = mapResidueHotspot.get(residue);
+                    hotspot3D.mergeHotspot(hotspot);
+                    
+                    int num = hotspot.getPatients().size();
+                    if (num > maxCap) {
+                        maxCap = num;
+                    }
                 }
                 
                 if (hotspot3D.getPatients().size()>=parameters.getThresholdSamples()) {
@@ -79,6 +107,12 @@ public class PTM3DHotspotDetective extends ProteinStructureHotspotDetective {
                     if (hotspots3D==null) {
                         hotspots3D = new HashSet<Hotspot>();
                         mapResiduesHotspots3D.put(residues, hotspots3D);
+                    }
+                    
+                    if (parameters.calculatePValue()) {
+                        DetectedInDecoy detectedInDecoy = new StructurePTMHotspotDetectedInDecoy(residues, maxCap, hotspot3D.getPatients().size());
+                        double p = getP(detectedInDecoy, decoyCountsList);
+                        hotspot3D.setPValue(p);
                     }
                     
                     hotspots3D.add(hotspot3D);
@@ -104,10 +138,67 @@ public class PTM3DHotspotDetective extends ProteinStructureHotspotDetective {
         return Collections.singletonMap(protein, hotspots3D);
     }
     
-    private Map<MutatedProtein3D,Map<SortedSet<Integer>, String>> get3DPTMs(MutatedProtein protein, Set<Integer> residues) throws HotspotException {
+    private int getLargestAlgnedPosition(Map<MutatedProtein3D,int[]> alignedRanges) {
+        int pos = Integer.MIN_VALUE;
+        for (int[] range : alignedRanges.values()) {
+            if (range[1] > pos) {
+                pos = range[1];
+            }
+        }
+        
+        return pos;
+    }
+    
+    private Map<MutatedProtein3D,int[]> getAlignedRanges(Map<MutatedProtein3D,List<PdbUniprotAlignment>> mapAlignments) {
+        Map<MutatedProtein3D,int[]> ranges = new HashMap<MutatedProtein3D,int[]>();
+        for (Map.Entry<MutatedProtein3D,List<PdbUniprotAlignment>> entry : mapAlignments.entrySet()) {
+            MutatedProtein3D protein3D = entry.getKey();
+            List<PdbUniprotAlignment> alignments = entry.getValue();
+            int[] range = new int[] {Integer.MAX_VALUE, Integer.MIN_VALUE};
+            for (PdbUniprotAlignment alg : alignments) {
+                int left = alg.getUniprotFrom();
+                int right = alg.getUniprotTo();
+                if (left < range[0]) {
+                    range[0] = left;
+                }
+                if (right > range[1]) {
+                    range[1] = right;
+                }
+            }
+            ranges.put(protein3D, range);
+        }
+        return ranges;
+    }
+    
+    private static class StructurePTMHotspotDetectedInDecoy implements DetectedInDecoy {
+        private final SortedSet<Integer> residues;
+        private final int maxCap;
+        private final int targetCount;
+        StructurePTMHotspotDetectedInDecoy(final SortedSet<Integer> residues, final int maxCap, final int targetCount) {
+            this.residues = residues;
+            this.maxCap = maxCap;
+            this.targetCount = targetCount;
+        }
+        public boolean isDetectedInDecoy(final int[] decoy) {
+            int count = 0;
+            for (int r : residues) {
+                int c = decoy[r];
+                if (c > maxCap) {
+                    c = maxCap;
+                }
+                count += c;
+                if (count >= targetCount) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+    
+    private Map<MutatedProtein3D,Map<SortedSet<Integer>, String>> get3DPTMs(Map<MutatedProtein3D,List<PdbUniprotAlignment>> mapAlignments, Set<Integer> residues) throws HotspotException {
         try {
             Map<MutatedProtein3D,Map<SortedSet<Integer>, String>> ptms = new HashMap<MutatedProtein3D,Map<SortedSet<Integer>,String>>();
-            Map<MutatedProtein3D,List<PdbUniprotAlignment>> mapAlignments = getPdbUniprotAlignments(protein);
             for (Map.Entry<MutatedProtein3D,List<PdbUniprotAlignment>> entryMapAlignments : mapAlignments.entrySet()) {
                 MutatedProtein3D protein3D = entryMapAlignments.getKey();
                 List<PdbUniprotAlignment> alignments = entryMapAlignments.getValue();

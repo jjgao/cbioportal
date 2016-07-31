@@ -147,7 +147,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         return Collections.singletonMap(protein, hotspots3D);
     }
     
-    private int[] getMutationCountsOnProtein(Map<Integer, Hotspot> mapResidueHotspot, int len) {
+    protected int[] getMutationCountsOnProtein(Map<Integer, Hotspot> mapResidueHotspot, int len) {
         int[] ret = new int[len+1];
         for (Map.Entry<Integer, Hotspot> entry : mapResidueHotspot.entrySet()) {
             ret[entry.getKey()] = entry.getValue().getPatients().size();

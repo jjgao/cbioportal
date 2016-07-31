@@ -32,6 +32,8 @@
 
 package org.mskcc.cbio.portal.model;
 
+import java.util.Objects;
+
 /**
  * Class designed to represent a single row in the pdb_uniprot_alignment table.
  *
@@ -194,5 +196,31 @@ public class PdbUniprotAlignment
 	{
 		this.uniprotTo = uniprotTo;
 	}
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 53 * hash + Objects.hashCode(this.alignmentId);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final PdbUniprotAlignment other = (PdbUniprotAlignment) obj;
+        if (!Objects.equals(this.alignmentId, other.alignmentId)) {
+            return false;
+        }
+        return true;
+    }
         
+    
 }
