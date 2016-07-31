@@ -85,11 +85,9 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
             }
             
             int[][] decoyCountsList = null;
-            DetectedInDecoy detectedInDecoy = null;
             
             if (parameters.calculatePValue()) {
                 decoyCountsList = generateDecoys(counts, contactMap.getProteinLeft(), contactMap.getProteinRight()+1, 10000);
-                detectedInDecoy = new StructureHotspotDetectedInDecoy(contactMap);
             }
             
             System.out.println("\t"+protein3D.getGene().getHugoGeneSymbolAllCaps()+" "+(++i)+"/"+contactMaps.size()+". Processing "
@@ -122,7 +120,8 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                     }
                     
                     if (parameters.calculatePValue()) {
-                        double p = getP(detectedInDecoy, decoyCountsList, maxCap, hotspot3D.getPatients().size());
+                        DetectedInDecoy detectedInDecoy = new StructureHotspotDetectedInDecoy(contactMap, maxCap, hotspot3D.getPatients().size());
+                        double p = getP(detectedInDecoy, decoyCountsList);
                         hotspot3D.setPValue(p);
                     }
                     
@@ -156,7 +155,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         return ret;//Arrays.asList(ArrayUtils.toObject(ret));
     }
     
-    private int[][] generateDecoys(int[] counts, int left, int right, int times) {
+    protected int[][] generateDecoys(int[] counts, int left, int right, int times) {
         int[][] decoys = new int[times][];
         for (int i=0; i<times; i++) {
             decoys[i] = Arrays.copyOf(counts, counts.length);
@@ -181,15 +180,19 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
     }
     
     static interface DetectedInDecoy {
-        boolean isDetectedInDecoy(final int[] decoy, final int maxCap, final int targetCount);
+        boolean isDetectedInDecoy(final int[] decoy);
     }
     
     private static class StructureHotspotDetectedInDecoy implements DetectedInDecoy {
         private final ContactMap contactMap;
-        StructureHotspotDetectedInDecoy(final ContactMap contactMap) {
+        private final int maxCap;
+        private final int targetCount;
+        StructureHotspotDetectedInDecoy(final ContactMap contactMap, final int maxCap, final int targetCount) {
             this.contactMap = contactMap;
+            this.maxCap = maxCap;
+            this.targetCount = targetCount;
         }
-        public boolean isDetectedInDecoy(final int[] decoy, final int maxCap, final int targetCount) {
+        public boolean isDetectedInDecoy(final int[] decoy) {
             boolean[][] graph = contactMap.getContact();
             int l = contactMap.getProteinLeft();
             int r = contactMap.getProteinRight();
@@ -213,7 +216,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
         }
     }
     
-    private double getP(final DetectedInDecoy detectedInDecoy, int[][] decoyCountsList, final int maxCap, final int targetCount) {
+    protected double getP(final DetectedInDecoy detectedInDecoy, int[][] decoyCountsList) {
         final AtomicInteger d = new AtomicInteger(0);
         
         int nDecoy = decoyCountsList.length;
@@ -226,7 +229,7 @@ public class ProteinStructureHotspotDetective extends AbstractHotspotDetective {
                 @Override
                 public void run() {
                     for (int[] decoy : decoys) {
-                        if (detectedInDecoy.isDetectedInDecoy(decoy, maxCap, targetCount)) {
+                        if (detectedInDecoy.isDetectedInDecoy(decoy)) {
                             d.incrementAndGet();
                         }
                     }
