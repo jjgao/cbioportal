@@ -122,14 +122,14 @@ public final class DaoUniProtIdMapping {
         }
     }
 
-    public static List<String> mapFromEntrezGeneIdToUniprotAccession(final int entrezGeneId) throws DaoException {
+    public static List<String> mapFromEntrezGeneIdToUniprotAccession(final long entrezGeneId) throws DaoException {
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
         try {
             connection = JdbcUtil.getDbConnection(DaoUniProtIdMapping.class);
             preparedStatement = connection.prepareStatement("select uniprot_acc from uniprot_id_mapping where entrez_gene_id = ?");
-            preparedStatement.setInt(1, entrezGeneId);
+            preparedStatement.setLong(1, entrezGeneId);
             resultSet = preparedStatement.executeQuery();
             List<String> uniProtAccs = new ArrayList<String>();
             while (resultSet.next()) {
